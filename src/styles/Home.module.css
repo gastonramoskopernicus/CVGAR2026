@@ -1,0 +1,266 @@
+.heroSection {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 0;
+  background: var(--background);
+  position: relative;
+  overflow: hidden;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 5rem;
+  align-items: center;
+}
+
+/* Image Side */
+.imageWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.imageBackground {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4; /* Vertical Rectangular */
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+  background: var(--secondary);
+}
+
+.heroImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.circularBadge {
+  position: absolute;
+  bottom: -40px;
+  left: -20px;
+  animation: rotate 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.badgeText {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  fill: var(--foreground);
+}
+
+/* Content Side */
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.mainTitle {
+  font-size: 5rem;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: -0.04em;
+}
+
+.highlight {
+  position: relative;
+  display: inline-block;
+}
+
+.highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  background-color: var(--primary);
+  opacity: 0.1;
+  z-index: -1;
+}
+
+.description {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+  max-width: 550px;
+}
+
+.description strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.ctaGroup {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.primaryCta {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  padding: 1.25rem 2.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.primaryCta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.secondaryCta {
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  color: var(--foreground);
+}
+
+.secondaryCta:hover {
+  color: var(--muted-foreground);
+}
+
+/* Decor Elements */
+.decorLight {
+  position: absolute;
+  bottom: 50px;
+  right: 50px;
+  opacity: 0.2;
+}
+
+/* Info Section */
+.infoSection {
+  padding: 100px 0;
+  background-color: #fafafa;
+  border-top: 1px solid var(--border);
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  margin-bottom: 50px;
+}
+
+.infoTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.infoContent p {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+
+.capabilitiesTeaser {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 50px;
+}
+
+.capabilityCard {
+  background-color: white;
+  padding: 3rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 0.3s ease;
+}
+
+.capabilityCard:hover {
+  border-color: var(--foreground);
+}
+
+.capabilityCard h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.capabilityCard p {
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+  .mainTitle {
+    font-size: 4rem;
+  }
+  
+  .heroGrid {
+    gap: 3rem;
+  }
+  
+  .infoRow {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroSection {
+    padding: 60px 0;
+  }
+  
+  .heroGrid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .imageWrapper {
+    order: -1;
+  }
+  
+  .imageBackground {
+    max-width: 350px;
+  }
+  
+  .heroContent {
+    align-items: center;
+  }
+  
+  .mainTitle {
+    font-size: 3rem;
+  }
+  
+  .ctaGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .primaryCta {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .capabilitiesTeaser {
+    grid-template-columns: 1fr;
+  }
+  
+  .circularBadge {
+    display: none;
+  }
+}

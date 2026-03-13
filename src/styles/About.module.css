@@ -1,0 +1,328 @@
+.intro {
+  padding: 100px 0 80px;
+}
+
+.header {
+  margin-bottom: 5rem;
+  border-bottom: 2px solid var(--foreground);
+  padding-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.bioGrid {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 5rem;
+  align-items: start;
+}
+
+.bioImageWrapper {
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+}
+
+.bioImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.bioText {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+
+.bioText p strong {
+  font-weight: 700;
+}
+
+.quickFacts {
+  background: var(--secondary);
+  padding: 4rem;
+  border-radius: 4px;
+  height: fit-content;
+}
+
+.factsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+}
+
+.factValue {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin-bottom: 0.25rem;
+}
+
+.factLabel {
+  font-size: 0.95rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.15rem;
+}
+
+/* Specialties */
+.specialties {
+  padding: 100px 0;
+  background: white;
+  border-top: 1px solid var(--border);
+}
+
+.sectionTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 4rem;
+  letter-spacing: -0.03em;
+}
+
+.specialtiesGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.specialtyCard {
+  background: white;
+  padding: 1rem 2rem;
+  border: 1px solid var(--border);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  transition: all 0.3s ease;
+}
+
+.specialtyCard:hover {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* Experience */
+.experience {
+  padding: 120px 0;
+  background-color: #fafafa;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6rem;
+}
+
+.timelineItem {
+  position: relative;
+  padding-left: 0;
+}
+
+.expHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+.role {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.company {
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.period {
+  font-size: 1.1rem;
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.expDescription {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: var(--foreground);
+  max-width: 800px;
+}
+
+.expList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.expList li {
+  position: relative;
+  padding-left: 1.5rem;
+  color: var(--muted-foreground);
+  font-size: 1.1rem;
+}
+
+.expList li::before {
+  content: '■';
+  position: absolute;
+  left: 0;
+  font-size: 0.7rem;
+  top: 0.4rem;
+  color: var(--foreground);
+}
+
+/* Hobbies */
+.hobbies {
+  padding: 8rem 0;
+  background-color: var(--secondary);
+}
+
+.hobbiesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.hobbyCard {
+  background: var(--background);
+  padding: 3rem 2rem;
+  border-radius: 4px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.hobbyCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+}
+
+.hobbyIcon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+.hobbyTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Education */
+.education {
+  padding: 8rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.eduGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+}
+
+.eduItem {
+  padding: 0;
+}
+
+.eduItem h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* How I Work */
+.howIWork {
+  padding-bottom: 150px;
+}
+
+.workBox {
+  background: var(--foreground);
+  color: var(--background);
+  padding: 6rem;
+  border-radius: 4px;
+}
+
+.workTitle {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.workText {
+  font-size: 1.5rem;
+  line-height: 1.6;
+  opacity: 0.9;
+  max-width: 900px;
+}
+
+@media (max-width: 1024px) {
+  .bioGrid {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+  }
+  
+  .mainTitle {
+    font-size: 3.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 3rem;
+  }
+  
+  .intro {
+    padding-top: 60px;
+  }
+  
+  .expHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .expList {
+    grid-template-columns: 1fr;
+  }
+  
+  .eduGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .workBox {
+    padding: 3rem 1.5rem;
+  }
+  
+  .workTitle {
+    font-size: 2.25rem;
+  }
+  
+  .workText {
+    font-size: 1.2rem;
+  }
+}
