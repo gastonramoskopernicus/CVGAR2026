@@ -120,10 +120,9 @@ export default function About() {
   ]
 
   const hobbies = [
-    { title: "Tecnología e Innovación", icon: "🚀" },
-    { title: "Deporte y Bienestar", icon: "🏃" },
-    { title: "Liderazgo y Mentoría", icon: "🤝" },
-    { title: "Viajes de Negocios y Cultura", icon: "🌍" }
+    { title: "Tecnología e Innovación" },
+    { title: "Deporte" },
+    { title: "Liderazgo y Mentoría" },
   ]
 
   return (
