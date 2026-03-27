@@ -207,12 +207,44 @@ export default function SportLanding({ photos }) {
         </motion.div>
       )}
 
+      <section style={{ paddingBottom: '2rem' }}>
+        <div className="container">
+          <motion.div
+            className={styles.contentGrid}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.5 }}
+          >
+            <div className={styles.sideLabel}>Perfil oficial</div>
+            <div>
+              <a
+                href="https://www.ub515.com.br/es/atletas-3/gast%C3%B3n-ramos"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.externalLink}
+              >
+                <span className={styles.externalLinkText}>
+                  Ver perfil en Ultraman Brasil UB515
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="7" y1="17" x2="17" y2="7" />
+                  <polyline points="7 7 17 7 17 17" />
+                </svg>
+              </a>
+              <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
+                Ficha oficial como atleta finalista en Ultraman Brasil UB515 — única representación argentina en esa instancia.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       <section style={{ paddingBottom: '6rem' }}>
         <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.5 }}
+            transition={{ duration: 0.55, delay: 0.58 }}
           >
             <div className={styles.ctaBlock}>
               <h3>Próximos contenidos</h3>

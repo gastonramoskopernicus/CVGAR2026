@@ -387,6 +387,28 @@
   opacity: 0.8;
 }
 
+/* External link */
+.externalLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 1.5px solid var(--foreground);
+  padding-bottom: 2px;
+  transition: opacity 0.2s ease, gap 0.2s ease;
+}
+
+.externalLink:hover {
+  opacity: 0.55;
+  gap: 0.85rem;
+}
+
+.externalLinkText {
+  letter-spacing: 0.01em;
+}
+
 /* =========== Responsive =========== */
 @media (max-width: 1024px) {
   .hubGrid {
