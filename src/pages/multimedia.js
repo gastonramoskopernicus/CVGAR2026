@@ -17,7 +17,7 @@ export default function Multimedia() {
       date: "Reciente",
       type: "Video",
       isVideo: true,
-      image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800",
+      image: "/thumbnails/seguros-sinteticos.png",
       link: "https://www.youtube.com/@kopernicustech"
     },
     {
@@ -26,7 +26,7 @@ export default function Multimedia() {
       category: "LinkedIn",
       date: "Marzo 2026",
       type: "Publicación",
-      image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800",
+      image: "/thumbnails/formacion-posgrado.png",
       link: "https://www.linkedin.com/in/ramosgaston/"
     },
     {
@@ -36,7 +36,7 @@ export default function Multimedia() {
       date: "Destacado",
       type: "Video",
       isVideo: true,
-      image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc4b?auto=format&fit=crop&q=80&w=800",
+      image: "/thumbnails/core-change.png",
       link: "https://www.youtube.com/@kopernicustech"
     },
     {
@@ -46,7 +46,7 @@ export default function Multimedia() {
       date: "Destacado",
       type: "Video",
       isVideo: true,
-      image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800",
+      image: "/thumbnails/cisnes-negros.png",
       link: "https://www.youtube.com/@kopernicustech"
     },
     {
@@ -55,7 +55,7 @@ export default function Multimedia() {
       category: "LinkedIn",
       date: "Febrero 2026",
       type: "Artículo",
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800",
+      image: "/thumbnails/modernizacion-core.png",
       link: "https://www.linkedin.com/in/ramosgaston/"
     },
     {
@@ -65,7 +65,7 @@ export default function Multimedia() {
       date: "Reciente",
       type: "Video",
       isVideo: true,
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800",
+      image: "/thumbnails/seguros-digitales.png",
       link: "https://www.youtube.com/@kopernicustech"
     }
   ]
