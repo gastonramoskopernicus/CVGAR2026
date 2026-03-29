@@ -1,12 +1,13 @@
 /* ===========================
-   LEGAL PAGES — shared styles
+   LEGAL PAGES — minimal shared styles
    =========================== */
 .page {
   padding-top: 5rem;
+  min-height: 80vh;
 }
 
 .hero {
-  padding: 5rem 0 3.5rem;
+  padding: 5rem 0 4rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -17,16 +18,16 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted-foreground);
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .title {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.05;
   color: var(--foreground);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .meta {
@@ -35,58 +36,15 @@
 }
 
 /* ===========================
-   BODY
+   CONTENT
    =========================== */
 .body {
   padding: 5rem 0 8rem;
-}
-
-.inner {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 6rem;
-  align-items: start;
-}
-
-/* Sticky TOC */
-.toc {
-  position: sticky;
-  top: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.tocTitle {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-  margin-bottom: 0.75rem;
-}
-
-.tocLink {
-  font-size: 0.82rem;
-  color: var(--muted-foreground);
-  text-decoration: none;
-  transition: color 0.2s ease;
-  line-height: 1.5;
-}
-
-.tocLink:hover {
-  color: var(--foreground);
-}
-
-/* Content */
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  max-width: 760px;
 }
 
 .section {
-  padding: 2.75rem 0;
+  padding: 2.5rem 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -99,18 +57,18 @@
 }
 
 .sectionTitle {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
   color: var(--foreground);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
 }
 
 .text {
   font-size: 0.97rem;
-  line-height: 1.8;
+  line-height: 1.85;
   color: var(--foreground);
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .text + .text {
@@ -129,7 +87,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.5rem;
 }
 
 .list li {
@@ -138,7 +96,7 @@
   font-size: 0.97rem;
   line-height: 1.65;
   color: var(--foreground);
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .list li::before {
@@ -148,19 +106,23 @@
   flex-shrink: 0;
 }
 
-/* Highlight box */
+/* IP highlight box */
 .highlight {
-  background: var(--foreground);
-  color: var(--background);
-  padding: 2rem 2.5rem;
-  border-radius: 4px;
   margin-top: 1.25rem;
+  padding: 1.75rem 2rem;
+  border: 1.5px solid var(--foreground);
+  border-radius: 4px;
 }
 
 .highlight p {
-  font-size: 0.97rem;
-  line-height: 1.75;
-  opacity: 0.85;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--foreground);
+  opacity: 0.75;
+}
+
+.highlight p + p {
+  margin-top: 0.75rem;
 }
 
 .highlight strong {
@@ -171,19 +133,9 @@
 /* ===========================
    RESPONSIVE
    =========================== */
-@media (max-width: 1024px) {
-  .inner {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-
-  .toc { position: static; }
-  .title { font-size: 2.75rem; }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .title { font-size: 2.25rem; }
   .hero { padding: 3.5rem 0 2.5rem; }
   .body { padding: 3.5rem 0 5rem; }
-  .highlight { padding: 1.5rem; }
+  .highlight { padding: 1.25rem 1.25rem; }
 }

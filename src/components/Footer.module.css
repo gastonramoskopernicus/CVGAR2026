@@ -1,24 +1,208 @@
+/* =========================================================
+   FOOTER — Corporate dark theme
+   All colors hardcoded to avoid CSS variable resolution
+   issues in production/SSR environments.
+   ========================================================= */
+
 .footer {
-  padding: 3rem 0;
-  background-color: var(--background);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.6);
+  padding-top: 5rem;
+  padding-bottom: 0;
 }
 
+/* =========== Grid =========== */
+.footerGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.4fr 1fr;
+  gap: 3rem;
+  padding-bottom: 4rem;
+}
+
+/* =========== Brand Block =========== */
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.brandLogo {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #fffcf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brandLogoText {
+  font-family: var(--font-heading), 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 1.5px;
+  color: #1a1a1a;
+}
+
+.brandName {
+  font-family: var(--font-heading), 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.brandTagline {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.brandDescription {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.45);
+  max-width: 300px;
+  margin: 0;
+}
+
+/* =========== Content Blocks =========== */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.blockTitle {
+  font-family: var(--font-heading), 'Outfit', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.blockList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.blockLink {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color 0.2s ease, padding-left 0.2s ease;
+  display: inline-block;
+}
+
+.blockLink:hover {
+  color: rgba(255, 255, 255, 0.95);
+  padding-left: 4px;
+}
+
+.blockLinkMuted {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.28);
+  cursor: default;
+}
+
+/* Social items with icon */
+.socialItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  word-break: break-word;
+}
+
+.socialItem:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Location item */
+.locationItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 0.25rem;
+}
+
+/* =========== Divider =========== */
+.divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* =========== Footer Bottom =========== */
 .footerBottom {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0 2rem;
+  gap: 1rem;
 }
 
 .copy {
-  color: #888888;
-  font-size: 0.9rem;
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.01em;
 }
 
-@media (max-width: 768px) {
+.copyMuted {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* =========== Responsive =========== */
+@media (max-width: 1024px) {
+  .footerGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+
+  .brand {
+    grid-column: span 2;
+  }
+
+  .brandDescription {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
   .footer {
-    padding: 2rem 0;
+    padding-top: 3.5rem;
+  }
+
+  .footerGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .brand {
+    grid-column: span 1;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding-bottom: 2.5rem;
   }
 }
