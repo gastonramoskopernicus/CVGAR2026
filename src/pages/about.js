@@ -24,7 +24,7 @@ export default function About() {
       role: "Socio Director en Kopernicus Tech LATAM - CEO Argentina",
       company: "Kopernicus Tech",
       period: "sept. 2020 - actualidad",
-      description: "Nuestra tesis es crear valor junto a nuestros clientes, construyendo relaciones estratégicas de largo plazo, a partir de nuestras capacidades y soluciones, buscando en la innovación y la disrupción digital, proyectos de transformación que permitan generar resultados de valor.",
+      description: "Socio Director en Kopernicus Tech Latam, donde asesoramos y acompañamos a las principales compañías de seguros y entidades financieras de la región en la transformación y optimización de sus procesos de negocio. Participamos activamente en el diseño y desarrollo de nuevos productos, la modernización y migración de plataformas legacy, la implementación de soluciones core y la definición de estrategias tecnológicas orientadas a generar eficiencia operativa y ventajas competitivas sostenibles.",
       highlights: [
         "Abordamos la necesidad desde la estrategia de TI, hasta la implementación de la misma.",
         "Alineación de objetivos corporativos con el potencial de las tecnologías de información.",
@@ -35,7 +35,7 @@ export default function About() {
       role: "Founder KPS Tech Argentina",
       company: "KPS Tech Argentina",
       period: "dic. 2025 - actualidad",
-      description: "Firma de consultoría tecnológica y desarrollo de software nacida como spin-off de Kopernicus Tech, con una sólida trayectoria en la industria aseguradora.",
+      description: "Founder de KPS Tech Argentina, una firma de consultoría que nace como un spin-off de Kopernicus Tech, orientada a brindar servicios a empresas con foco en Argentina y la región. Acompañamos organizaciones de múltiples industrias —como manufactura, retail, legales, entre otras— en la optimización de sus procesos, la evolución de sus modelos de negocio y la adopción de tecnología como habilitador estratégico.",
       highlights: [
         "Diseño, construcción y evolución de plataformas tecnológicas.",
         "Combinación de estrategia, arquitectura y delivery con equipos especializados.",
@@ -96,10 +96,10 @@ export default function About() {
       ]
     },
     {
-      role: "Manager IP Practice",
+      role: "Manager IT Practice",
       company: "PriceWaterhouseCoopers - Argentina",
       period: "nov. 2006 - dic. 2010",
-      description: "Gerente de Consultoría IT, asesorando a la alta gerencia y CIOs en la optimización tecnológica para lograr ventajas competitivas.",
+      description: "Gerente de Consultoría IT, asesorando a altas gerencias y CEOs en la optimización tecnológica para generar ventajas competitivas sostenibles. He trabajado con empresas multinacionales tanto en Argentina como en otros mercados, incluyendo Estados Unidos, México, Paraguay, Uruguay y Brasil, acompañando a las organizaciones en la adopción y aprovechamiento estratégico de IT para potenciar sus operaciones y definir su estrategia corporativa.",
       highlights: [
         "Alineación estratégica, optimización de costos y Sourcing de IT (Outsourcing, Offshoring).",
         "Experiencia internacional: Brasil, México, USA y Paraguay.",
