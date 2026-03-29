@@ -1,112 +1,254 @@
+/* ===========================
+   HEADER — base
+   =========================== */
 .header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  padding: 1.5rem 0;
+  background: rgba(255, 252, 245, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s ease;
 }
 
+/* ===========================
+   NAV ROW
+   =========================== */
 .nav {
+  height: 64px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 2.5rem;
 }
 
-.navList {
-  flex: 1;
+/* ===========================
+   LOGO — left
+   =========================== */
+.logo {
+  flex-shrink: 0;
   display: flex;
-  gap: 2rem;
   align-items: center;
-}
-
-.navLink {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--foreground);
-  text-transform: capitalize;
-  letter-spacing: 0.02em;
-}
-
-.navLink:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.active {
-  text-decoration: underline !important;
-  text-underline-offset: 4px;
-  font-weight: 600;
-}
-
-.logoContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 0 0 auto;
+  text-decoration: none;
+  margin-right: auto; /* pushes everything else to the right */
 }
 
 .logoCircle {
-  width: 50px;
-  height: 50px;
-  background-color: var(--foreground);
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  background: var(--foreground);
   display: flex;
-  justify-content: center;
   align-items: center;
-  transition: transform 0.3s ease;
+  justify-content: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.logoCircle:hover {
-  transform: scale(1.05);
+.logo:hover .logoCircle {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
 .logoText {
-  color: var(--background);
+  font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 1.1rem;
-  letter-spacing: 1px;
+  font-size: 0.88rem;
+  letter-spacing: 1.5px;
+  color: var(--background);
+  line-height: 1;
 }
 
-.socials {
-  flex: 1;
+/* ===========================
+   NAV LIST — desktop right
+   =========================== */
+.navList {
   display: flex;
-  justify-content: flex-end;
-  gap: 1.25rem;
   align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navLink {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 450;
+  color: var(--foreground);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition: background 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+  text-decoration: none;
+}
+
+.navLink:hover {
+  background: rgba(0, 0, 0, 0.055);
+}
+
+.navLinkActive {
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* ===========================
+   SOCIAL ICONS — desktop right
+   =========================== */
+.socials {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
 }
 
 .socialLink {
-  color: var(--foreground);
-  opacity: 0.8;
-  transition: opacity 0.2s ease, transform 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  color: var(--foreground);
+  opacity: 0.6;
+  transition: opacity 0.18s ease, background 0.18s ease;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
   padding: 0;
 }
 
 .socialLink:hover {
   opacity: 1;
-  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.055);
 }
 
+/* ===========================
+   HAMBURGER — mobile only
+   =========================== */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+
+.hamburger:hover {
+  background: rgba(0, 0, 0, 0.055);
+}
+
+.bar {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: var(--foreground);
+  border-radius: 2px;
+  transform-origin: center;
+  transition: transform 0.28s ease, opacity 0.28s ease, width 0.28s ease;
+}
+
+/* X animation */
+.hamburgerOpen .bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.hamburgerOpen .bar:nth-child(2) { opacity: 0; width: 0; }
+.hamburgerOpen .bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* ===========================
+   MOBILE DRAWER
+   =========================== */
+.drawer {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(255, 252, 245, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.24s ease;
+}
+
+.drawerOpen {
+  max-height: 480px;
+  opacity: 1;
+}
+
+.drawerList {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1.5rem 0;
+}
+
+.drawerLink {
+  display: flex;
+  align-items: center;
+  padding: 0.9rem 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  transition: opacity 0.18s ease, padding-left 0.18s ease;
+}
+
+.drawerLink:hover {
+  opacity: 0.55;
+  padding-left: 6px;
+}
+
+.drawerLinkActive {
+  font-weight: 700;
+}
+
+.drawerList li:last-child .drawerLink {
+  border-bottom: none;
+}
+
+.drawerSocials {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1.25rem 1.5rem 1.75rem;
+}
+
+/* ===========================
+   RESPONSIVE
+   =========================== */
+
+/* Tablet — tighten spacing slightly */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .navList { gap: 0; }
+  .navLink { padding: 0.35rem 0.6rem; font-size: 0.84rem; }
+}
+
+/* Mobile — hamburger mode */
 @media (max-width: 768px) {
-  .header {
-    padding: 1rem 0;
-  }
-  
-  .navList {
-    display: none;
-  }
-  
-  .socials {
-    display: none;
-  }
-  
+  .navList  { display: none; }
+  .socials  { display: none; }
+  .hamburger { display: flex; }
+  .drawer   { display: block; }
+
   .nav {
-    justify-content: center;
+    height: 58px;
   }
 }
