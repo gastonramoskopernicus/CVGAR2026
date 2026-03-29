@@ -103,10 +103,14 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <span className={styles.blockLinkMuted}>Política de privacidad</span>
+                <Link href="/politica-de-privacidad" className={styles.blockLink}>
+                  Política de privacidad
+                </Link>
               </li>
               <li>
-                <span className={styles.blockLinkMuted}>Términos de uso</span>
+                <Link href="/terminos-y-condiciones" className={styles.blockLink}>
+                  Términos y condiciones
+                </Link>
               </li>
               <li className={styles.locationItem}>
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
