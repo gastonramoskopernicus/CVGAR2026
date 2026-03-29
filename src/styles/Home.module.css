@@ -20,23 +20,25 @@
   position: relative;
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 .imageBackground {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4; /* Vertical Rectangular */
+  aspect-ratio: 3 / 4;
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
   background: var(--secondary);
+  /* Stable dimensions prevent layout shift on re-render */
+  min-height: 300px;
+  contain: layout;
 }
 
 .heroImage {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
-  display: block;
+  object-position: center top;
 }
 
 .circularBadge {
@@ -232,10 +234,15 @@
   
   .imageWrapper {
     order: -1;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
   }
-  
+
   .imageBackground {
-    max-width: 350px;
+    /* Explicit height on mobile avoids aspect-ratio recalc jank */
+    height: 450px;
+    aspect-ratio: unset;
   }
   
   .heroContent {

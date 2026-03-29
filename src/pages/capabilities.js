@@ -78,8 +78,8 @@ export default function Capabilities() {
             <p className={styles.ctaText}>
               Conversemos sobre cómo mi experiencia senior y visión estratégica pueden guiar la evolución de su organización aseguradora.
             </p>
-            <Link href="#contact" className={styles.contactBtn}>
-              Iniciar una Conversación
+            <Link href="/contacto" className={styles.contactBtn}>
+              Hablemos
             </Link>
           </div>
         </div>
