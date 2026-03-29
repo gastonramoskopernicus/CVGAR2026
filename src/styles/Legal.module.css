@@ -1,11 +1,12 @@
 /* ===========================
-   LEGAL PAGES — minimal shared styles
+   LEGAL PAGES — layout
    =========================== */
 .page {
   padding-top: 5rem;
   min-height: 80vh;
 }
 
+/* Hero spans full container width */
 .hero {
   padding: 5rem 0 4rem;
   border-bottom: 1px solid var(--border);
@@ -36,14 +37,23 @@
 }
 
 /* ===========================
-   CONTENT
+   BODY — full container width
    =========================== */
 .body {
   padding: 5rem 0 8rem;
-  max-width: 760px;
+  /* NO max-width here — uses the full .container from globals */
 }
 
+/* Optional inner reading column — applied per section if needed */
+.inner {
+  max-width: 800px;
+}
+
+/* ===========================
+   SECTIONS
+   =========================== */
 .section {
+  max-width: 800px;   /* comfortable editorial reading width */
   padding: 2.5rem 0;
   border-bottom: 1px solid var(--border);
 }
@@ -118,7 +128,7 @@
   font-size: 0.95rem;
   line-height: 1.8;
   color: var(--foreground);
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 .highlight p + p {
@@ -133,9 +143,20 @@
 /* ===========================
    RESPONSIVE
    =========================== */
+@media (max-width: 1024px) {
+  .section {
+    max-width: 100%;   /* full width on tablet/mobile */
+  }
+}
+
 @media (max-width: 768px) {
-  .title { font-size: 2.25rem; }
-  .hero { padding: 3.5rem 0 2.5rem; }
-  .body { padding: 3.5rem 0 5rem; }
-  .highlight { padding: 1.25rem 1.25rem; }
+  .title       { font-size: 2.25rem; }
+  .hero        { padding: 3.5rem 0 2.5rem; }
+  .body        { padding: 3.5rem 0 5rem; }
+  .highlight   { padding: 1.25rem; }
+  .sectionTitle { font-size: 1rem; }
+}
+
+@media (max-width: 480px) {
+  .title { font-size: 1.9rem; }
 }
