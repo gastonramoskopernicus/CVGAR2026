@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Header from './Header'
 import Footer from './Footer'
+import StickyIcon from './StickyIcon'
 import styles from './Layout.module.css'
 
 const Layout = ({ children }) => {
@@ -18,6 +19,7 @@ const Layout = ({ children }) => {
           {children}
         </main>
         <Footer />
+        <StickyIcon />
       </div>
     </>
   )
