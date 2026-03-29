@@ -103,7 +103,7 @@ export default function Contacto() {
             >
               <div className={styles.heroLeft}>
                 <h1>Hablemos</h1>
-                <p>Si querés explorar una colaboración, necesitás una perspectiva estratégica sobre tecnología y seguros, o simplemente te interesa conectar — este es el lugar.</p>
+                <p>Si tenés alguna necesidad o considerás que puede ser de valor que conversemos, estoy a disposición. Ya sea para aportar una perspectiva estratégica, validar una iniciativa o explorar una posible colaboración, será un gusto intercambiar ideas.</p>
               </div>
 
               <div className={styles.heroRight}>
@@ -141,7 +141,7 @@ export default function Contacto() {
               <div className={styles.formSidebar}>
                 <p className={styles.formSidebarLabel}>Formulario de contacto</p>
                 <p className={styles.formSidebarText}>
-                  Respondemos dentro de las <strong>48 hs hábiles</strong>. Los campos marcados con * son obligatorios.
+                  Completá los siguientes datos o dejame tu mensaje y a la brevedad me voy a contactar con vos.
                 </p>
               </div>
 
