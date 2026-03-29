@@ -211,16 +211,20 @@ export default function About() {
           <h2 className={styles.sectionTitle} style={{ color: '#000000' }}>Formación Académica</h2>
           <div className={styles.eduGrid}>
             <div className={styles.eduItem}>
-              <h3 style={{ color: '#000000' }}>Gestión Técnica y Legal de Seguros (Posgrado)</h3>
-              <p>Universidad de San Andrés (En curso)</p>
-            </div>
-            <div className={styles.eduItem}>
               <h3 style={{ color: '#000000' }}>Licenciatura en Sistemas de Información</h3>
-              <p>Universidad de Buenos Aires (UBA)</p>
+              <p>Universidad del Salvador</p>
             </div>
             <div className={styles.eduItem}>
               <h3 style={{ color: '#000000' }}>Licenciatura en Administración de Empresas</h3>
+              <p>Universidad del Salvador</p>
+            </div>
+            <div className={styles.eduItem}>
+              <h3 style={{ color: '#000000' }}>Posgrado en Derecho y Seguros</h3>
               <p>Universidad de Buenos Aires (UBA)</p>
+            </div>
+            <div className={styles.eduItem}>
+              <h3 style={{ color: '#000000' }}>Certificación IAOP</h3>
+              <p>International Association of Outsourcing Professionals</p>
             </div>
           </div>
         </div>
