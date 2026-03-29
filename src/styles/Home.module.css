@@ -1,57 +1,73 @@
+/* ==========================================
+   HOME PAGE — fully responsive styles
+   Desktop: 2-col grid (image left, text right)
+   Tablet: 2-col with tighter gap
+   Mobile: single column stack, image on top
+   ========================================== */
+
+/* ---- Hero Section ---- */
 .heroSection {
-  min-height: 90vh;
+  min-height: 100svh;            /* use svh for mobile browsers */
   display: flex;
   align-items: center;
-  padding: 100px 0;
+  padding: 120px 0 80px;
   background: var(--background);
   position: relative;
-  overflow: hidden;
+  overflow: visible;             /* don't clip circular badge */
 }
 
+/* ---- Hero Grid ---- */
 .heroGrid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1fr 1.25fr;
   gap: 5rem;
   align-items: center;
-}
-
-/* Image Side */
-.imageWrapper {
-  position: relative;
-  display: flex;
-  justify-content: center;
   width: 100%;
 }
 
+/* ==========================================
+   IMAGE SIDE
+   ========================================== */
+.imageWrapper {
+  position: relative;
+  width: 100%;
+}
+
+/*
+  The key trick: use a padding-bottom aspect-ratio hack
+  so the box has a stable height regardless of load state.
+  Next.js <Image fill> then covers the space without
+  explicit width/height that cause layout shift.
+*/
 .imageBackground {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4;
+  padding-bottom: 133%;          /* 3:4 ratio → height = width × 1.33 */
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
   background: var(--secondary);
-  /* Stable dimensions prevent layout shift on re-render */
-  min-height: 300px;
-  contain: layout;
 }
 
+/* Next.js fill image sits inside the padded container */
 .heroImage {
   object-fit: cover;
-  object-position: center top;
+  object-position: center top;  /* keep face in frame */
 }
 
+/* Circular badge */
 .circularBadge {
   position: absolute;
-  bottom: -40px;
-  left: -20px;
+  bottom: -30px;
+  left: -30px;
   animation: rotate 20s linear infinite;
   pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes rotate {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .badgeText {
@@ -63,7 +79,9 @@
   fill: var(--foreground);
 }
 
-/* Content Side */
+/* ==========================================
+   CONTENT SIDE
+   ========================================== */
 .heroContent {
   display: flex;
   flex-direction: column;
@@ -71,11 +89,13 @@
 }
 
 .mainTitle {
-  font-size: 5rem;
-  line-height: 1;
+  font-size: clamp(2.5rem, 5vw, 5rem);   /* fluid type — no breakpoint needed */
+  line-height: 1.05;
   font-weight: 800;
   color: var(--foreground);
   letter-spacing: -0.04em;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .highlight {
@@ -86,20 +106,20 @@
 .highlight::after {
   content: '';
   position: absolute;
-  bottom: 10px;
+  bottom: 8px;
   left: 0;
   width: 100%;
-  height: 12px;
+  height: 10px;
   background-color: var(--primary);
-  opacity: 0.1;
+  opacity: 0.08;
   z-index: -1;
 }
 
 .description {
-  font-size: 1.25rem;
-  line-height: 1.6;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.65;
   color: var(--muted-foreground);
-  max-width: 550px;
+  max-width: 540px;
 }
 
 .description strong {
@@ -109,22 +129,24 @@
 
 .ctaGroup {
   display: flex;
-  gap: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
   align-items: center;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .primaryCta {
   background-color: var(--primary);
   color: var(--primary-foreground);
-  padding: 1.25rem 2.5rem;
+  padding: 1rem 2rem;
   border-radius: 4px;
   font-weight: 700;
-  font-size: 1.1rem;
-  display: flex;
+  font-size: 1rem;
+  display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  gap: 0.75rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  white-space: nowrap;
 }
 
 .primaryCta:hover {
@@ -134,7 +156,7 @@
 
 .secondaryCta {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
   text-decoration: underline;
   text-underline-offset: 6px;
   color: var(--foreground);
@@ -144,35 +166,46 @@
   color: var(--muted-foreground);
 }
 
-/* Decor Elements */
+/* Decor */
 .decorLight {
   position: absolute;
   bottom: 50px;
   right: 50px;
-  opacity: 0.2;
+  opacity: 0.15;
+  pointer-events: none;
 }
 
-/* Info Section */
+/* ==========================================
+   INFO / VALUE SECTION
+   ========================================== */
 .infoSection {
-  padding: 100px 0;
-  background-color: #fafafa;
+  padding: 6rem 0;
+  background-color: var(--secondary);
   border-top: 1px solid var(--border);
+}
+
+.infoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
 }
 
 .infoRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
-  margin-bottom: 50px;
+  align-items: start;
 }
 
 .infoTitle {
-  font-size: 2.5rem;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
   font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .infoContent p {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   line-height: 1.7;
   color: var(--muted-foreground);
 }
@@ -180,94 +213,123 @@
 .capabilitiesTeaser {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  margin-top: 50px;
+  gap: 1.5rem;
 }
 
 .capabilityCard {
-  background-color: white;
-  padding: 3rem 2rem;
+  background-color: var(--background);
+  padding: 2.5rem 2rem;
   border: 1px solid var(--border);
   border-radius: 4px;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
 .capabilityCard:hover {
   border-color: var(--foreground);
+  transform: translateY(-3px);
 }
 
 .capabilityCard h3 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
 }
 
 .capabilityCard p {
+  font-size: 0.95rem;
   color: var(--muted-foreground);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-/* Responsiveness */
+/* ==========================================
+   RESPONSIVE BREAKPOINTS
+   ========================================== */
+
+/* --- Tablet (≤ 1024px) --- */
 @media (max-width: 1024px) {
-  .mainTitle {
-    font-size: 4rem;
-  }
-  
   .heroGrid {
+    grid-template-columns: 1fr 1.4fr;
     gap: 3rem;
   }
-  
+
   .infoRow {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
+  .capabilitiesTeaser {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
+/* --- Mobile (≤ 768px) --- */
 @media (max-width: 768px) {
   .heroSection {
-    padding: 60px 0;
-  }
-  
-  .heroGrid {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-  
-  .imageWrapper {
-    order: -1;
-    width: 100%;
-    max-width: 360px;
-    margin: 0 auto;
+    padding: 100px 0 60px;
+    min-height: auto;
   }
 
-  .imageBackground {
-    /* Explicit height on mobile avoids aspect-ratio recalc jank */
-    height: 450px;
-    aspect-ratio: unset;
+  .heroGrid {
+    grid-template-columns: 1fr;   /* single column stack */
+    gap: 2.5rem;
   }
-  
-  .heroContent {
-    align-items: center;
-  }
-  
-  .mainTitle {
-    font-size: 3rem;
-  }
-  
-  .ctaGroup {
-    flex-direction: column;
+
+  /* Image goes on top */
+  .imageWrapper {
+    order: -1;
+    max-width: 320px;
+    margin: 0 auto;
     width: 100%;
   }
-  
+
+  .heroContent {
+    align-items: center;
+    text-align: center;
+  }
+
+  .description {
+    max-width: 100%;
+  }
+
+  .ctaGroup {
+    justify-content: center;
+    width: 100%;
+  }
+
   .primaryCta {
     width: 100%;
     justify-content: center;
   }
-  
+
+  .circularBadge {
+    display: none;   /* avoid overflow on small screens */
+  }
+
+  .decorLight {
+    display: none;
+  }
+
+  .infoSection {
+    padding: 4rem 0;
+  }
+
   .capabilitiesTeaser {
     grid-template-columns: 1fr;
   }
-  
-  .circularBadge {
-    display: none;
+}
+
+/* --- Small mobile (≤ 480px) --- */
+@media (max-width: 480px) {
+  .heroSection {
+    padding: 90px 0 50px;
+  }
+
+  .imageWrapper {
+    max-width: 260px;
+  }
+
+  .capabilityCard {
+    padding: 1.75rem 1.5rem;
   }
 }

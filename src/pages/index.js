@@ -31,8 +31,8 @@ export default function Home() {
                 <Image 
                   src="/FotoGAR.jpeg" 
                   alt="Gastón Alejandro Ramos" 
-                  width={450} 
-                  height={600} 
+                  fill
+                  sizes="(max-width: 480px) 260px, (max-width: 768px) 320px, (max-width: 1024px) 40vw, 30vw"
                   className={styles.heroImage}
                   priority
                 />
