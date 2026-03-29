@@ -72,7 +72,7 @@ export default function Home() {
                 <Link href="/about" className={styles.primaryCta}>
                   Ver Perfil <span>&rarr;</span>
                 </Link>
-                <Link href="#contact" className={styles.secondaryCta} style={{ color: '#000000' }}>
+                <Link href="/contacto" className={styles.secondaryCta} style={{ color: '#000000' }}>
                   Hablemos
                 </Link>
               </div>

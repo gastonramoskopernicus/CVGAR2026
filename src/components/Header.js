@@ -9,6 +9,7 @@ const navItems = [
   { name: 'Capacidades',  path: '/capabilities' },
   { name: 'Multimedia',   path: '/multimedia' },
   { name: 'Intereses',    path: '/hobbies' },
+  { name: 'Contacto',     path: '/contacto' },
 ]
 
 const LinkedInIcon = () => (
@@ -78,13 +79,13 @@ const Header = () => {
             >
               <LinkedInIcon />
             </a>
-            <a
-              href="mailto:ramos.gaston@kopernicus.tech"
+            <Link
+              href="/contacto"
               className={styles.socialLink}
-              aria-label="Email"
+              aria-label="Contacto"
             >
               <EmailIcon />
-            </a>
+            </Link>
           </div>
 
           {/* Hamburger — mobile only */}
@@ -127,9 +128,9 @@ const Header = () => {
           <a href="https://www.linkedin.com/in/ramosgaston/" target="_blank" rel="noopener noreferrer" className={styles.socialLink} aria-label="LinkedIn">
             <LinkedInIcon />
           </a>
-          <a href="mailto:ramos.gaston@kopernicus.tech" className={styles.socialLink} aria-label="Email">
+          <Link href="/contacto" className={styles.socialLink} aria-label="Contacto">
             <EmailIcon />
-          </a>
+          </Link>
         </div>
       </div>
     </header>
