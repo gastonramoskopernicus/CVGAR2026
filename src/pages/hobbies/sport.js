@@ -92,16 +92,16 @@ export default function SportLanding({ photos }) {
             transition={{ duration: 0.55, delay: 0.15 }}
           >
             <div className={styles.statItem}>
+              <span className={styles.statValue}>UB515</span>
+              <span className={styles.statLabel}>Finalista Ultraman Brasil</span>
+            </div>
+            <div className={styles.statItem}>
               <span className={styles.statValue}>6</span>
-              <span className={styles.statLabel}>Ironman completados</span>
+              <span className={styles.statLabel}>Ironman — Distancia 140.6 Millas</span>
             </div>
             <div className={styles.statItem}>
-              <span className={styles.statValue}>9</span>
-              <span className={styles.statLabel}>Medios Ironman</span>
-            </div>
-            <div className={styles.statItem}>
-              <span className={styles.statValue}>30km</span>
-              <span className={styles.statLabel}>Travesía Villusquiza–Paraná en aguas abiertas</span>
+              <span className={styles.statValue}>Medio Ultraman</span>
+              <span className={styles.statLabel}>301K</span>
             </div>
           </motion.div>
 
@@ -133,12 +133,12 @@ export default function SportLanding({ photos }) {
           >
             <div className={styles.sideLabel}>Trayectoria</div>
             <ul className={styles.achievementList}>
-              <li className={styles.achievementItem}>V515 — Ultraman Brasil</li>
+              <li className={styles.achievementItem}>UB515 — Ultraman Brasil</li>
               <li className={styles.achievementItem}>3 participaciones en el Medio Ultraman (Atletas Extremos, Córdoba)</li>
               <li className={styles.achievementItem}>6 Ironman completos (distancia 140.6)</li>
               <li className={styles.achievementItem}>9 medios Ironman (distancia 70.3)</li>
-              <li className={styles.achievementItem}>Travesía de natación Villa Urquiza–Paraná</li>
-              <li className={styles.achievementItem}>Ultra Trail La Misión (120 km)</li>
+              <li className={styles.achievementItem}>Travesía de natación Villa Urquiza–Paraná (30 km)</li>
+              <li className={styles.achievementItem}>La Misión – Ultratrail 120 km</li>
               <li className={styles.achievementItem}>Múltiples maratones y experiencias de ultra trail (4x maratones, Ultra Trail Pachamama, Ultra Trail Aconcagua, etc.)</li>
             </ul>
           </motion.div>
