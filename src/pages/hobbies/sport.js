@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { promises as fs } from 'fs'
 import path from 'path'
 import styles from '@/styles/Hobbies.module.css'
@@ -15,48 +15,24 @@ const BackIcon = () => (
   </svg>
 )
 
-const PrevIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="15 18 9 12 15 6" />
-  </svg>
-)
-
-const NextIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
-)
-
-// Seeded shuffle — deterministic per session, gives variety without hydration mismatch
-function seededShuffle(arr, seed) {
-  const shuffled = [...arr]
-  let s = seed
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    const j = Math.abs(s) % (i + 1)
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  return shuffled
-}
-
-const VISIBLE = 3 // slides visible at once
-
 export default function SportLanding({ photos }) {
-  const [shuffled, setShuffled] = useState(photos)
-  const [page, setPage] = useState(0)
+  const [selectedImg, setSelectedImg] = useState(null)
 
-  // Shuffle client-side on mount using today's date as seed for daily variety
+  // Handle Escape key to close lightbox
   useEffect(() => {
-    const seed = new Date().getDate() * 31 + new Date().getMonth() * 12
-    setShuffled(seededShuffle(photos, seed))
-  }, [photos])
-
-  const totalPages = Math.ceil(shuffled.length / VISIBLE)
-
-  const prev = useCallback(() => setPage(p => Math.max(0, p - 1)), [])
-  const next = useCallback(() => setPage(p => Math.min(totalPages - 1, p + 1)), [totalPages])
-
-  const visiblePhotos = shuffled.slice(page * VISIBLE, page * VISIBLE + VISIBLE)
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setSelectedImg(null)
+    }
+    if (selectedImg) {
+      window.addEventListener('keydown', handleKeyDown)
+      // Prevent scroll when lightbox is open
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = 'unset'
+    }
+  }, [selectedImg])
 
   return (
     <>
@@ -146,68 +122,6 @@ export default function SportLanding({ photos }) {
         </div>
       </section>
 
-      {/* Photo Carousel — full bleed section */}
-      {shuffled.length > 0 && (
-        <motion.div
-          className={styles.carouselSection}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          <div className={styles.carouselHeader} style={{ maxWidth: '1280px', margin: '0 auto 2.5rem', padding: '0 2rem' }}>
-            <span className={styles.carouselTitle}>Imágenes</span>
-            <div className={styles.carouselControls}>
-              <button
-                className={styles.carouselBtn}
-                onClick={prev}
-                disabled={page === 0}
-                aria-label="Anterior"
-              >
-                <PrevIcon />
-              </button>
-              <button
-                className={styles.carouselBtn}
-                onClick={next}
-                disabled={page >= totalPages - 1}
-                aria-label="Siguiente"
-              >
-                <NextIcon />
-              </button>
-            </div>
-          </div>
-
-          <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem' }}>
-            <div className={styles.carouselTrack} style={{ padding: 0 }}>
-              {visiblePhotos.map((photo) => (
-                <div key={photo} className={styles.carouselSlide}>
-                  <Image
-                    src={`/photos/${photo}`}
-                    alt="Experiencia deportiva"
-                    width={600}
-                    height={450}
-                    className={styles.carouselImg}
-                    sizes="(max-width: 768px) 85vw, 33vw"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Dots */}
-            <div className={styles.carouselDots}>
-              {Array.from({ length: Math.min(totalPages, 12) }).map((_, i) => (
-                <button
-                  key={i}
-                  className={`${styles.carouselDot} ${i === page % 12 ? styles.carouselDotActive : ''}`}
-                  onClick={() => setPage(i)}
-                  aria-label={`Página ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       <section style={{ paddingBottom: '2rem' }}>
         <div className="container">
           <motion.div
@@ -257,12 +171,17 @@ export default function SportLanding({ photos }) {
         </div>
       </section>
 
-      {/* Marquee Gallery - Final visual touch */}
+      {/* Marquee Gallery - Single and Final */}
       <section className={styles.marqueeSection}>
         <div className={styles.marqueeContainer}>
           <div className={styles.marqueeTrack}>
             {[...photos, ...photos].map((photo, i) => (
-              <div key={`${photo}-${i}`} className={styles.marqueeItem}>
+              <div 
+                key={`${photo}-${i}`} 
+                className={styles.marqueeItem}
+                onClick={() => setSelectedImg(photo)}
+                style={{ cursor: 'zoom-in' }}
+              >
                 <Image
                   src={`/photos/${photo}`}
                   alt="Deporte"
@@ -276,6 +195,35 @@ export default function SportLanding({ photos }) {
           </div>
         </div>
       </section>
+
+      {/* Lightbox Overlay */}
+      <AnimatePresence>
+        {selectedImg && (
+          <motion.div 
+            className={styles.lightboxOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedImg(null)}
+          >
+            <motion.div 
+              className={styles.lightboxImageWrapper}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseLeave={() => setSelectedImg(null)}
+            >
+              <img 
+                src={`/photos/${selectedImg}`} 
+                alt="Ampliación" 
+                className={styles.lightboxImage}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
@@ -287,7 +235,7 @@ export async function getStaticProps() {
     const files = await fs.readdir(photosDir)
     photos = files
       .filter(f => /\.(jpe?g|png|webp|gif)$/i.test(f))
-      .sort() // stable default order; client shuffles on mount
+      .sort() // stable default order
   } catch (e) {
     photos = []
   }
