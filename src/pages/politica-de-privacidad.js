@@ -6,7 +6,7 @@ export default function PoliticaDePrivacidad() {
     <>
       <Head>
         <title>Política de Privacidad | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Política de privacidad del sitio personal de Gastón Alejandro Ramos." />
+        <meta name="description" content="Política de privacidad del sitio web de Gastón Alejandro Ramos." />
       </Head>
 
       <div className={styles.page}>
@@ -22,62 +22,69 @@ export default function PoliticaDePrivacidad() {
           <div className="container">
 
             <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>1. Introducción</h2>
               <p className={styles.text}>
-                Este sitio web es el sitio personal y profesional de <strong>Gastón Alejandro Ramos</strong>. La presente política describe qué información puede recopilarse durante la visita y cómo se utiliza.
+                La presente Política de Privacidad describe los criterios bajo los cuales se recopila, utiliza y protege la información en el sitio web titularidad de <strong>Gastón Alejandro Ramos</strong>.
+              </p>
+              <p className={styles.text}>
+                Este sitio tiene carácter profesional e informativo, y se encuentra orientado a la difusión de contenidos, ideas y servicios vinculados a la tecnología, la consultoría y el desarrollo organizacional.
+              </p>
+              <p className={styles.text}>El uso del sitio implica la aceptación de las prácticas aquí descriptas.</p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>2. Alcance de la información</h2>
+              <p className={styles.text}>
+                La información que eventualmente sea proporcionada por los usuarios a través de este sitio será tratada con carácter confidencial y utilizada exclusivamente en el marco de la relación derivada del uso del mismo.
+              </p>
+              <p className={styles.text}>
+                No se recopilan datos sensibles ni se comercializa información personal con terceros.
               </p>
             </div>
 
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Datos que recopilamos</h2>
+              <h2 className={styles.sectionTitle}>3. Derechos del usuario</h2>
+              <p className={styles.text}>
+                Los usuarios podrán ejercer en cualquier momento sus derechos de acceso, rectificación, actualización, limitación, portabilidad o eliminación de los datos personales que hayan proporcionado voluntariamente.
+              </p>
+              <p className={styles.text}>
+                Asimismo, podrán solicitar información adicional sobre el tratamiento de sus datos o requerir la baja de cualquier contacto generado a partir del uso del sitio.
+              </p>
+              <p className={styles.text}>
+                Para ejercer estos derechos, podrán comunicarse mediante el correo electrónico: <strong>ramos.gaston@kopernicus.tech</strong>
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>4. Seguridad de la información</h2>
+              <p className={styles.text}>
+                Se adoptan medidas técnicas razonables para proteger la información personal de los usuarios, incluyendo el uso de protocolos seguros de transmisión de datos.
+              </p>
+              <p className={styles.text}>
+                No obstante, se deja constancia de que ningún sistema digital es completamente invulnerable.
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>5. Propiedad intelectual</h2>
+              <p className={styles.text}>
+                Todo el contenido presente en este sitio, así como en plataformas y canales asociados — incluyendo LinkedIn, YouTube u otros medios — forma parte del patrimonio intelectual de <strong>Gastón Ramos</strong>.
+              </p>
+              <p className={styles.text}>Dicho contenido incluye, entre otros:</p>
               <ul className={styles.list}>
-                <li><strong>Formulario de contacto:</strong> nombre, email, empresa, teléfono y mensaje enviados voluntariamente por el usuario.</li>
-                <li><strong>Datos de navegación:</strong> dirección IP, tipo de navegador y páginas visitadas, con fines estadísticos y de mejora del sitio.</li>
+                <li>textos</li>
+                <li>ideas</li>
+                <li>metodologías</li>
+                <li>estructuras</li>
+                <li>materiales</li>
+                <li>enfoques profesionales</li>
               </ul>
-              <p className={styles.text} style={{ marginTop: '0.85rem' }}>No se recopilan datos sensibles ni se venden datos a terceros.</p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Uso de la información</h2>
-              <p className={styles.text}>La información recopilada se utiliza exclusivamente para responder consultas enviadas a través del formulario de contacto y para mejorar la experiencia de navegación del sitio.</p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Protección de datos</h2>
-              <p className={styles.text}>Se aplican medidas técnicas razonables para proteger la información personal. La transmisión de datos se realiza mediante conexión HTTPS. No obstante, ningún sistema de transmisión por internet es completamente seguro.</p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Cookies</h2>
-              <p className={styles.text}>El sitio puede utilizar cookies técnicas necesarias para su correcto funcionamiento. No se utilizan cookies de seguimiento con fines publicitarios. El usuario puede configurar su navegador para rechazarlas.</p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Servicios de terceros</h2>
-              <p className={styles.text}>El sitio utiliza Vercel para hosting e incluye enlaces a plataformas externas (LinkedIn). Estos servicios tienen sus propias políticas de privacidad y este sitio no se hace responsable de sus prácticas.</p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Derechos del usuario</h2>
-              <p className={styles.text}>El usuario puede solicitar acceso, rectificación, eliminación o portabilidad de sus datos escribiendo a <strong>ramos.gaston@kopernicus.tech</strong>.</p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Propiedad intelectual</h2>
-              <p className={styles.text}>
-                Todo el contenido de este sitio — textos, ideas, estructuras, materiales y cualquier información vinculada — es propiedad intelectual de <strong>Gastón Ramos</strong>.
-              </p>
               <div className={styles.highlight}>
                 <p>
-                  Queda <strong>prohibida la reproducción, distribución o uso</strong> de cualquier contenido sin autorización previa del autor o sin citar correctamente la fuente: nombre completo (Gastón Ramos) y URL de origen.
+                  Queda <strong>prohibida su reproducción, distribución o utilización</strong> sin autorización previa del titular o sin la correspondiente mención expresa del autor (<strong>Gastón Ramos</strong>) y la fuente original.
                 </p>
+                <p>El uso indebido de este contenido podrá dar lugar a acciones legales.</p>
               </div>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Contacto</h2>
-              <p className={styles.text}>
-                Para consultas sobre esta política, contactar a través del <a href="/contacto" style={{ textDecoration: 'underline' }}>formulario de contacto</a> o por email a <strong>ramos.gaston@kopernicus.tech</strong>.
-              </p>
             </div>
 
           </div>
