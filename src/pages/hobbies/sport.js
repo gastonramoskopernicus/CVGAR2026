@@ -112,7 +112,7 @@ export default function SportLanding({ photos }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.25 }}
           >
-            <div className={styles.sideLabel}>Perspectiva</div>
+            <div className={styles.sideLabel}>Visión</div>
             <div className={styles.contentBody}>
               <p>
                 El deporte me dio herramientas que no encontré en ningún libro. La consistencia, la tolerancia a la incomodidad y la capacidad de mantener el foco en objetivos de largo plazo son habilidades que entrené durante años en la pista, el agua y el camino, y que aplico todos los días en el trabajo.
@@ -133,12 +133,13 @@ export default function SportLanding({ photos }) {
           >
             <div className={styles.sideLabel}>Trayectoria</div>
             <ul className={styles.achievementList}>
-              <li className={styles.achievementItem}>9 medios Ironman completados</li>
-              <li className={styles.achievementItem}>6 Ironman completados (distancia completa)</li>
-              <li className={styles.achievementItem}>Travesía de natación Villusquiza–Paraná, 30 km en aguas abiertas</li>
-              <li className={styles.achievementItem}>3 participaciones en medio Ultraman</li>
-              <li className={styles.achievementItem}>Finalista en Ultraman Brasil UB515 — único representante argentino en esa instancia</li>
-              <li className={styles.achievementItem}>Múltiples maratones y experiencias de ultra trail</li>
+              <li className={styles.achievementItem}>V515 — Ultraman Brasil</li>
+              <li className={styles.achievementItem}>3 participaciones en el Medio Ultraman (Atletas Extremos, Córdoba)</li>
+              <li className={styles.achievementItem}>6 Ironman completos (distancia 140.6)</li>
+              <li className={styles.achievementItem}>9 medios Ironman (distancia 70.3)</li>
+              <li className={styles.achievementItem}>Travesía de natación Villa Urquiza–Paraná</li>
+              <li className={styles.achievementItem}>Ultra Trail La Misión (120 km)</li>
+              <li className={styles.achievementItem}>Múltiples maratones y experiencias de ultra trail (4x maratones, Ultra Trail Pachamama, Ultra Trail Aconcagua, etc.)</li>
             </ul>
           </motion.div>
 
