@@ -256,6 +256,26 @@ export default function SportLanding({ photos }) {
           </motion.div>
         </div>
       </section>
+
+      {/* Marquee Gallery - Final visual touch */}
+      <section className={styles.marqueeSection}>
+        <div className={styles.marqueeContainer}>
+          <div className={styles.marqueeTrack}>
+            {[...photos, ...photos].map((photo, i) => (
+              <div key={`${photo}-${i}`} className={styles.marqueeItem}>
+                <Image
+                  src={`/photos/${photo}`}
+                  alt="Deporte"
+                  width={320}
+                  height={200}
+                  className={styles.marqueeImg}
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   )
 }
