@@ -92,15 +92,15 @@ export default function SportLanding({ photos }) {
             transition={{ duration: 0.55, delay: 0.15 }}
           >
             <div className={styles.statItem}>
-              <span className={styles.statValue}>UB515</span>
-              <span className={styles.statLabel}>Finalista Ultraman Brasil</span>
+              <span className={styles.statValue}>1x UB515</span>
+              <span className={styles.statLabel}>Finalista Ultraman Brasil 2018</span>
             </div>
             <div className={styles.statItem}>
-              <span className={styles.statValue}>6</span>
-              <span className={styles.statLabel}>Ironman — Distancia 140.6 Millas</span>
+              <span className={styles.statValue}>6x Ironman</span>
+              <span className={styles.statLabel}>Distancia 140.6 millas</span>
             </div>
             <div className={styles.statItem}>
-              <span className={styles.statValue}>Medio Ultraman</span>
+              <span className={styles.statValue}>3x Medio Ultraman</span>
               <span className={styles.statLabel}>301K</span>
             </div>
           </motion.div>
