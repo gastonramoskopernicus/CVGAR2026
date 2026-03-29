@@ -57,18 +57,18 @@ export default function About() {
       role: "Socio Gerente",
       company: "Next Step Argentina",
       period: "dic. 2012 - jul. 2020",
-      description: "Consultoría especializada en Tecnologías de Información y Mejora de Procesos para empresas con potencial de crecimiento.",
+      description: "Me desarrollé como gerente en una de las principales consultoras de nicho de seguros en Argentina, colaborando en proyectos de gran relevancia tanto a nivel local como regional.",
       highlights: [
         "Implementación de nuevas tendencias del mercado y mejores prácticas.",
         "Desarrollo de actividades en Argentina, Uruguay y España.",
-        "Enfoque en 'Think Big ... Think Digital'."
+        "Think big. Think digital."
       ]
     },
     {
       role: "Director de Operaciones",
       company: "Grupo GAMAN",
       period: "dic. 2010 - jul. 2020",
-      description: "Responsable de la dirección operativa para las empresas del Grupo GAMAN, uno de los grupos con mayor crecimiento en la industria del seguro.",
+      description: "Colaboré en la creación y evolución de uno de los brokers más importantes de Argentina, participando en el diseño de imagen, la estructuración de operaciones, el desarrollo comercial con terceros y la implementación de herramientas y soluciones de backend.",
       highlights: [
         "Gestión operativa integral en un entorno multi-empresa.",
         "Posicionamiento estratégico dentro de la industria aseguradora.",
@@ -79,7 +79,7 @@ export default function About() {
       role: "Gerente General",
       company: "Broker Digital de Productores de Seguros S.A",
       period: "dic. 2010 - dic. 2014",
-      description: "Co-Founder de El Asegurador On-Line (EAOL), impulsando la digitalización del corretaje de seguros.",
+      description: "Fui co-founder del primer agregador digital de seguros de Argentina en el año 2010.",
       highlights: [
         "Liderazgo en la creación de plataformas digitales para productores.",
         "Gestión ejecutiva y visión de negocio Insurtech temprana."
@@ -157,7 +157,7 @@ export default function About() {
                 Como Socio Director de Kopernicus Tech, me especializo en asesorar a niveles C-Level y Juntas Directivas en procesos de Transformación Digital, Insurtech y modernización de infraestructuras críticas. Mi objetivo es convertir la complejidad tecnológica en una ventaja competitiva sostenible.
               </p>
               <p>
-                Mi formación actual incluye una especialización en Gestión Técnica y Legal de Seguros en la Universidad de San Andrés, lo que me permite abordar los desafíos de la industria con una visión 360°, combinando rigor técnico con agilidad estratégica.
+                Mi formación incluye una Licenciatura en Sistemas de Información, una Licenciatura en Administración de Empresas en la Universidad del Salvador, un posgrado en Derecho y Seguros de la UBA y una certificación de la IAOP (International Association of Outsourcing Professionals), entre otras calificaciones y certificaciones.
               </p>
             </div>
           </div>
