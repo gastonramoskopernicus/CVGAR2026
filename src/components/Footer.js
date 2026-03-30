@@ -25,7 +25,7 @@ const Footer = () => {
             </div>
             <p className={styles.brandName}>Gastón Alejandro Ramos</p>
             <p className={styles.brandTagline}>
-              Asesor Senior en Estrategia y Tecnología para Seguros
+              Consultor Senior en Estrategia y Tecnología para Empresas
             </p>
             <p className={styles.brandDescription}>
               Liderando la convergencia entre el negocio asegurador y las plataformas tecnológicas de vanguardia para el mercado latinoamericano.

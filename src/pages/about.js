@@ -2,6 +2,7 @@ import Head from 'next/head'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import styles from '@/styles/About.module.css'
+import ExperienceMap from '../components/ExperienceMap'
 
 export default function About() {
   const specialties = [
@@ -151,7 +152,7 @@ export default function About() {
             </div>
             <div className={styles.bioText}>
               <p>
-                Soy un apasionado por la tecnología, el liderazgo y la innovación aplicada. Con más de 30 años de trayectoria en la industria aseguradora, mi enfoque se centra en actuar como un puente crítico entre la visión del negocio y las capacidades tecnológicas.
+                Soy argentino, nací en la ciudad de Buenos Aires en 1977 y desde muy chico me interesó la tecnología y la informática. Soy un apasionado por la tecnología, el liderazgo y la innovación aplicada. Con más de 30 años de trayectoria en la industria aseguradora, mi enfoque se centra en actuar como un puente crítico entre la visión del negocio y las capacidades tecnológicas.
               </p>
               <p>
                 Como Socio Director de Kopernicus Tech, me especializo en asesorar a niveles C-Level y Juntas Directivas en procesos de Transformación Digital, Insurtech y modernización de infraestructuras críticas. Mi objetivo es convertir la complejidad tecnológica en una ventaja competitiva sostenible.
@@ -166,7 +167,7 @@ export default function About() {
 
       <section className={styles.specialties}>
         <div className="container">
-          <h2 className={styles.sectionTitle} style={{ color: '#000000' }}>Experticia y Áreas de Enfoque</h2>
+          <h2 className={styles.sectionTitle} style={{ color: '#000000' }}>Expertise y Áreas de Enfoque</h2>
           <div className={styles.specialtiesGrid}>
             {specialties.map((item, index) => (
               <motion.div 
@@ -180,6 +181,10 @@ export default function About() {
           </div>
         </div>
       </section>
+
+      <div className="container">
+        <ExperienceMap />
+      </div>
 
       <section className={styles.experience}>
         <div className="container">

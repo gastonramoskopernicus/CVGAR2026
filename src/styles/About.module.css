@@ -326,3 +326,91 @@
     font-size: 1.2rem;
   }
 }
+
+/* =========== Experience Map =========== */
+.mapSection {
+  padding: 8rem 0;
+  background-color: #fbfbfb;
+  border-top: 1px solid var(--border);
+}
+
+.mapContainer {
+  max-width: 1000px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.worldMap {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.worldMap path {
+  fill: #e0e0e0;
+  stroke: #ffffff;
+  stroke-width: 0.5;
+  transition: all 0.3s ease;
+}
+
+/* Highlighted countries */
+.worldMap path[data-highlighted="true"] {
+  fill: #000000;
+}
+
+.worldMap path[data-highlighted="true"]:hover {
+  fill: #333333;
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.2));
+  cursor: pointer;
+}
+
+.countryLegend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  padding: 0 1rem;
+}
+
+.legendItem {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 1rem;
+  background: #f0f0f0;
+  border-radius: 20px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  background: var(--foreground);
+  border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+  .mapSection {
+    padding: 5rem 0;
+  }
+  .mapLegend {
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+  .legendItem {
+    font-size: 0.7rem;
+  }
+}
