@@ -1,9 +1,8 @@
 import '@/styles/globals.css'
 import Layout from '@/components/Layout'
 import { useEffect } from 'react'
-import { SessionProvider } from 'next-auth/react'
 
-export default function App({ Component, pageProps: { session, ...pageProps } }) {
+export default function App({ Component, pageProps }) {
   useEffect(() => {
     // Default to light theme for the new redesign
     if (!document.documentElement.getAttribute('data-theme')) {
@@ -12,10 +11,9 @@ export default function App({ Component, pageProps: { session, ...pageProps } })
   }, [])
 
   return (
-    <SessionProvider session={session}>
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
-    </SessionProvider>
+    <Layout>
+      <Component {...pageProps} />
+    </Layout>
   )
 }
+
