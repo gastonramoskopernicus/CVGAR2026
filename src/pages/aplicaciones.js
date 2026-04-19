@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import { getSession } from 'next-auth/react';
 import styles from '@/styles/Aplicaciones.module.css';
-import { privateApps, AUTHORIZED_EMAIL } from '@/data/privateApps';
+import { privateApps } from '@/data/privateApps';
+import { isAuthorized } from '@/lib/authConfig';
 
 export default function AplicacionesPage({ apps, accessDenied }) {
   if (accessDenied) {
@@ -57,7 +58,7 @@ export default function AplicacionesPage({ apps, accessDenied }) {
                   {/* Container that actually rotates */}
                   <div className={styles.orbitRotation}
                        style={{
-                         animation: `${styles.spin} ${app.orbitSpeed}s linear infinite`,
+                         animation: `spin ${app.orbitSpeed}s linear infinite`,
                          transform: `rotate(${initialAngle}deg)`
                        }}>
                     
@@ -74,7 +75,7 @@ export default function AplicacionesPage({ apps, accessDenied }) {
                              height: `${app.size}px`,
                              backgroundColor: app.color,
                              // reverse the spin to keep the planet pointing "up"
-                             animation: `${styles.reverseSpin} ${app.orbitSpeed}s linear infinite` 
+                             animation: `reverseSpin ${app.orbitSpeed}s linear infinite` 
                            }}>
                       </div>
                       
@@ -113,7 +114,7 @@ export async function getServerSideProps(context) {
 
   // Double check authorization, NextAuth callback should handle this, 
   // but we enforce it strictly here as well.
-  if (session.user.email.toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
+  if (!isAuthorized(session.user.email)) {
     return {
       props: {
         accessDenied: true

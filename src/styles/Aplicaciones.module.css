@@ -181,12 +181,12 @@
 }
 
 /* Animation Keys for Orbits */
-@keyframes spin {
+@keyframes :global(spin) {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-@keyframes reverseSpin {
+@keyframes :global(reverseSpin) {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(-360deg); }
 }

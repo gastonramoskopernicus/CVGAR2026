@@ -31,4 +31,3 @@ export const privateApps = [
   }
 ];
 
-export const AUTHORIZED_EMAIL = 'gaston.alejandro.ramos@gmail.com';
