@@ -7,8 +7,8 @@ export default function AplicacionesPage({ apps, accessDenied }) {
     return (
       <section className="container">
         <div className={styles.unauthorizedBox}>
-          <h2 style={{color: '#ef4444', marginBottom: '1rem'}}>Acceso Denegado</h2>
-          <p style={{color: '#94a3b8'}}>No tienes los privilegios necesarios para ver este ecosistema.</p>
+          <h2 style={{color: '#ef4444', marginBottom: '1rem', fontSize: '1.5rem'}}>Acceso Denegado</h2>
+          <p style={{color: '#94a3b8'}}>No tienes los privilegios necesarios para acceder a este workspace.</p>
         </div>
       </section>
     );
@@ -17,81 +17,52 @@ export default function AplicacionesPage({ apps, accessDenied }) {
   return (
     <>
       <Head>
-        <title>Aplicaciones Privadas | Ecosistema GAR</title>
+        <title>Workspace Privado | GAR</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
-      <section className="container">
-        <div className={styles.galaxyContainer}>
-          {/* Overlay titles */}
-          <div className={styles.overlayContent}>
-            <h1>Garverse</h1>
-            <p>Ecosistema privado de plataformas operativas y de gestión.</p>
-          </div>
-
-          <div className={styles.stars}></div>
-
-          {/* Planetary System */}
-          <div className={styles.solarSystem}>
-            {/* The Sun / Core */}
-            <div className={styles.core}>
-               <span className={styles.coreText}>GAR</span>
-            </div>
-
-            {/* Orbiting Apps */}
-            {apps.map((app, index) => {
-              // We'll calculate a randomized starting angle for visual appeal
-              const initialAngle = (360 / apps.length) * index;
-              
-              return (
-                <div key={app.id} 
-                     className={styles.orbit} 
-                     style={{
-                       width: `${app.orbitRadius * 2}px`, 
-                       height: `${app.orbitRadius * 2}px`,
-                       left: `-${app.orbitRadius}px`,
-                       top: `-${app.orbitRadius}px`
-                     }}>
-                  
-                  {/* Container that actually rotates */}
-                  <div className={styles.orbitRotation}
-                       style={{
-                         animation: `spin ${app.orbitSpeed}s linear infinite`,
-                         transform: `rotate(${initialAngle}deg)`
-                       }}>
-                    
-                    {/* The Planet itself positioned at the edge of the radius */}
-                    <div className={styles.planetContainer}
-                         style={{ 
-                            transform: `translate(${app.orbitRadius}px, 0px)`,
-                            '--planet-color': app.color 
-                         }}>
-                      
-                      <div className={styles.planet} 
-                           style={{
-                             width: `${app.size}px`,
-                             height: `${app.size}px`,
-                             backgroundColor: app.color,
-                             // reverse the spin to keep the planet pointing "up"
-                             animation: `reverseSpin ${app.orbitSpeed}s linear infinite` 
-                           }}>
-                      </div>
-                      
-                      <div className={styles.tooltip}>
-                        <h3>{app.name}</h3>
-                        <p>{app.description}</p>
-                        <a href={app.url} target="_blank" rel="noopener noreferrer" className={styles.visitBtn}>
-                          Abrir
-                        </a>
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <section className={styles.workspaceContainer}>
+        
+        <div className={styles.workspaceHeader}>
+          <h1>Workspace Privado</h1>
+          <p>Accesos a plataformas operativas, de gestión y proyectos personales.</p>
         </div>
+
+        <div className={styles.appsGrid}>
+          {apps.map((app) => (
+            <a 
+              key={app.id} 
+              href={app.url} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className={styles.card}
+              style={{ '--app-color': app.color }}
+            >
+              <div className={styles.cardHeader}>
+                <div className={styles.iconWrapper}>
+                  {/* General Icon mapping using SVG path from data */}
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width="24" height="24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={app.iconPath} />
+                  </svg>
+                </div>
+                {app.category && (
+                  <span className={styles.categoryBadge}>{app.category}</span>
+                )}
+              </div>
+              
+              <h3 className={styles.cardTitle}>{app.name}</h3>
+              <p className={styles.cardDesc}>{app.description}</p>
+              
+              <div className={styles.cardAction}>
+                <span>Abrir plataforma</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" width="16" height="16">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
+            </a>
+          ))}
+        </div>
+
       </section>
     </>
   );
@@ -131,4 +102,3 @@ export async function getServerSideProps(context) {
     },
   }
 }
-

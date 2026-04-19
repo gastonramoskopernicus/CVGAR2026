@@ -1,221 +1,157 @@
-.galaxyContainer {
+.workspaceContainer {
   min-height: calc(100vh - 120px);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  background: #0f172a;
-  border-radius: 1rem;
-  margin: 2rem 0;
+  flex-direction: column;
+  padding: 3rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.stars {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.7;
-  background-image:
-    radial-gradient(circle at 10% 20%, rgba(255,255,255,0.7) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 30% 60%, rgba(255,255,255,0.5) 0 1.5px, transparent 2px),
-    radial-gradient(circle at 80% 40%, rgba(255,255,255,0.4) 0 2px, transparent 2.5px),
-    radial-gradient(circle at 60% 80%, rgba(255,255,255,0.6) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 90% 10%, rgba(255,255,255,0.5) 0 1px, transparent 1.5px);
-  background-size: 150% 150%;
-  animation: moveStars 120s linear infinite;
+.workspaceHeader {
+  text-align: center;
+  margin-bottom: 4rem;
 }
 
-@keyframes moveStars {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 100% 100%;
-  }
+.workspaceHeader h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  background: linear-gradient(to right, #f8fafc, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.solarSystem {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transform: scale(0.72);
+.workspaceHeader p {
+  color: #94a3b8;
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.appsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
-  .solarSystem {
-    transform: scale(1);
+  .appsGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-.core {
-  position: absolute;
-  width: 88px;
-  height: 88px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, #ffffff 10%, #d4d4d8 60%, #52525b 100%);
-  box-shadow:
-    0 0 40px rgba(255,255,255,0.2),
-    inset 0 0 20px rgba(0,0,0,0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
+@media (min-width: 1024px) {
+  .appsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-.coreText {
-  color: #18181b;
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-}
-
-.orbit {
-  position: absolute;
-  border-radius: 9999px;
-  border: 1px dashed rgba(255,255,255,0.14);
-  z-index: 1;
-}
-
-.orbitRotation {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: 0 0;
-}
-
-.planetContainer {
-  position: absolute;
-  cursor: pointer;
-  z-index: 5;
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: var(--app-color);
+  box-shadow: 0 10px 30px -10px var(--app-color);
+  background: #1e293b; /* maintain solid back */
+}
+
+/* Subtle gradient glow in top corner on hover */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--app-color);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.iconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
   align-items: center;
+  justify-content: center;
+  color: var(--app-color);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.card:hover .iconWrapper {
+  background: var(--app-color);
+  color: #fff;
+  border-color: var(--app-color);
+}
+
+.categoryBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 0.5rem;
+}
+
+.cardDesc {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+  flex-grow: 1;
+}
+
+.cardAction {
+  display: flex;
+  align-items: center;
+  color: var(--app-color);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: opacity 0.3s ease;
+}
+
+.cardAction svg {
+  margin-left: 0.5rem;
   transition: transform 0.3s ease;
 }
 
-.planetContainer:hover {
-  transform: scale(1.08);
-  z-index: 20;
-}
-
-.planet {
-  border-radius: 9999px;
-  background-size: cover;
-  position: relative;
-  box-shadow:
-    inset -10px -10px 20px rgba(0,0,0,0.45),
-    0 0 20px rgba(255,255,255,0.1);
-  transition: box-shadow 0.3s ease;
-}
-
-.planet::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 5px 5px 10px rgba(255,255,255,0.28);
-}
-
-.planetContainer:hover .planet {
-  box-shadow:
-    inset -5px -5px 10px rgba(0,0,0,0.45),
-    0 0 30px var(--planet-color, rgba(255,255,255,0.45));
-}
-
-.tooltip {
-  position: absolute;
-  top: calc(100% + 14px);
-  left: 50%;
-  transform: translateX(-50%) translateY(-8px);
-  width: max-content;
-  max-width: 220px;
-  padding: 1rem;
-  text-align: center;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(8px);
-  color: #fff;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.45);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.planetContainer:hover .tooltip {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
-}
-
-.tooltip h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.tooltip p {
-  margin: 0;
-  font-size: 0.82rem;
-  color: #94a3b8;
-}
-
-.visitBtn {
-  display: inline-block;
-  margin-top: 0.75rem;
-  padding: 0.45rem 1rem;
-  border-radius: 9999px;
-  background: var(--planet-color, #3b82f6);
-  color: #fff !important;
-  text-decoration: none;
-  font-size: 0.82rem;
-  font-weight: 600;
-  transition: opacity 0.2s ease;
-}
-
-.visitBtn:hover {
-  opacity: 0.92;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes reverseSpin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(-360deg);
-  }
-}
-
-.overlayContent {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.overlayContent h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  color: #f8fafc;
-}
-
-.overlayContent p {
-  margin: 0;
-  color: #94a3b8;
-  max-width: 320px;
+.card:hover .cardAction svg {
+  transform: translateX(4px);
 }
 
 .unauthorizedBox {
@@ -225,4 +161,6 @@
   border-radius: 12px;
   background: #1e293b;
   border: 1px solid #334155;
+  max-width: 600px;
+  margin: 4rem auto;
 }
