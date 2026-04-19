@@ -9,6 +9,7 @@ const navItems = [
   { name: 'Capacidades',  path: '/capabilities' },
   { name: 'Multimedia',   path: '/multimedia' },
   { name: 'Intereses',    path: '/hobbies' },
+  { name: 'Aplicaciones', path: '/aplicaciones' },
   { name: 'Contacto',     path: '/contacto' },
 ]
 
