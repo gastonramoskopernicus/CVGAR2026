@@ -1,8 +1,6 @@
 import Head from 'next/head';
-import { getSession } from 'next-auth/react';
 import styles from '@/styles/Aplicaciones.module.css';
 import { privateApps } from '@/data/privateApps';
-import { isAuthorized } from '@/lib/authConfig';
 
 export default function AplicacionesPage({ apps, accessDenied }) {
   if (accessDenied) {
@@ -100,8 +98,11 @@ export default function AplicacionesPage({ apps, accessDenied }) {
 }
 
 // Server Side protection
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/authOptions"
+
 export async function getServerSideProps(context) {
-  const session = await getSession(context);
+  const session = await getServerSession(context.req, context.res, authOptions)
 
   if (!session) {
     return {
@@ -109,22 +110,25 @@ export async function getServerSideProps(context) {
         destination: '/api/auth/signin?callbackUrl=/aplicaciones',
         permanent: false,
       },
-    };
+    }
   }
 
-  // Double check authorization, NextAuth callback should handle this, 
-  // but we enforce it strictly here as well.
-  if (!isAuthorized(session.user.email)) {
+  const authorized = (process.env.AUTHORIZED_EMAIL || "").toLowerCase().trim();
+  const incoming = (session.user?.email || "").toLowerCase().trim();
+
+  // Double check authorization on page render
+  if (incoming !== authorized || authorized === "") {
     return {
       props: {
         accessDenied: true
       }
-    };
+    }
   }
 
   return {
     props: {
       apps: privateApps
     },
-  };
+  }
 }
+
