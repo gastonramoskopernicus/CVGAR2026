@@ -25,5 +25,14 @@ export const privateApps = [
     color: '#eab308', // Yellow (modern)
     category: 'Energía',
     iconPath: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z'
+  },
+  {
+    id: 'crypto-admin',
+    name: 'Crypto Admin',
+    description: 'Plataforma de análisis de mercado de criptomonedas',
+    url: 'https://crypto-admin-web.vercel.app/',
+    color: '#8b5cf6', // Violet (modern)
+    category: 'Finanzas',
+    iconPath: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
   }
 ];
