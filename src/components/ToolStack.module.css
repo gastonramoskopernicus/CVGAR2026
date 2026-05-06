@@ -1,7 +1,7 @@
 .toolStackSection {
   margin-top: 6rem;
   padding-top: 4rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid #272a30;
   display: flex;
   flex-direction: column;
   gap: 4rem;
@@ -14,7 +14,7 @@
 .sectionHeader h2 {
   font-size: 2rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #ffffff;
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -39,17 +39,17 @@
 .categoryTitle {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #f8fafc;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid #272a30;
   padding-bottom: 0.75rem;
 }
 
 .categoryDesc {
-  color: #64748b;
-  font-size: 0.9rem;
+  color: #94a3b8;
+  font-size: 0.95rem;
   margin-top: -1rem;
   margin-bottom: 0.5rem;
 }
@@ -73,10 +73,8 @@
 }
 
 .toolCard {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #181a20; /* Solid deep dark background */
+  border: 1px solid #272a30; /* Clearly defined subtle border */
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -85,13 +83,14 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); /* Base depth */
 }
 
 .toolCard:hover {
   transform: translateY(-4px);
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(139, 92, 246, 0.4);
-  box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.15);
+  background: #1c1f26; /* Slightly lighter on hover to simulate elevation */
+  border-color: rgba(139, 92, 246, 0.5); /* Violet accent border */
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(139, 92, 246, 0.1);
 }
 
 .toolCard::before {
@@ -101,7 +100,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.06), transparent 40%);
+  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.04), transparent 40%);
   opacity: 0;
   transition: opacity 0.5s;
   pointer-events: none;
@@ -119,9 +118,9 @@
 }
 
 .toolName {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #f8fafc;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff; /* Absolute white */
   margin: 0;
 }
 
@@ -133,25 +132,25 @@
 
 .badge {
   font-size: 0.7rem;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #272a30; /* Solid background */
+  color: #cbd5e1;
+  border: 1px solid #334155;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .badgeFeatured {
-  background: rgba(139, 92, 246, 0.1);
-  color: #c4b5fd;
-  border-color: rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.15);
+  color: #ddd6fe;
+  border-color: rgba(139, 92, 246, 0.3);
 }
 
 .toolDesc {
-  color: #94a3b8;
-  font-size: 0.9rem;
+  color: #cbd5e1; /* High contrast light gray */
+  font-size: 0.95rem;
   line-height: 1.5;
   margin-bottom: 1.5rem;
   flex-grow: 1;
@@ -163,7 +162,7 @@
   align-items: center;
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid #272a30;
 }
 
 .tags {
@@ -173,21 +172,22 @@
 
 .tag {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 .openLink {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #8b5cf6;
+  color: #a78bfa; /* Slightly lighter violet base state */
   transition: all 0.2s ease;
 }
 
 .toolCard:hover .openLink {
-  color: #a78bfa;
+  color: #c4b5fd; /* Even lighter violet on hover */
 }
 
 .openLink svg {
