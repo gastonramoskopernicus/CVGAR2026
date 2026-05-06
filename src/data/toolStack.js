@@ -195,21 +195,5 @@ export const toolStackCategories = [
         type: "ai"
       }
     ]
-  },
-  {
-    id: "web3-crypto",
-    title: "Plataformas Web3 y Ecosistema Cripto",
-    description: "Plataformas de análisis y monitoreo blockchain.",
-    tools: [
-      {
-        name: "Crypto Admin",
-        description: "Plataforma de análisis y monitoreo de mercado de criptomonedas.",
-        url: "https://crypto-admin-web.vercel.app/",
-        tags: ["Crypto", "Dashboard"],
-        category: "Monitoreo",
-        featured: true,
-        type: "platform"
-      }
-    ]
   }
 ];

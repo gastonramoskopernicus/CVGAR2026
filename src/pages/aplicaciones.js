@@ -25,8 +25,8 @@ export default function AplicacionesPage({ apps, accessDenied }) {
       <section className={styles.workspaceContainer}>
         
         <div className={styles.workspaceHeader}>
-          <h1>Workspace Privado</h1>
-          <p>Accesos a plataformas operativas, de gestión y proyectos personales.</p>
+          <h1>Mis Aplicaciones / Plataformas Propias</h1>
+          <p>Accesos principales a herramientas de gestión, logística y finanzas.</p>
         </div>
 
         <div className={styles.appsGrid}>

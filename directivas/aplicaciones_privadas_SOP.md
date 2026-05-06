@@ -12,9 +12,9 @@ Crear una sección exclusiva de acceso personal (`/aplicaciones`) validada media
 1. **Acceso Autorizado:** Sólo `Gaston.alejandro.ramos@gmail.com` puede visualizar la sección.
 2. **Redirección No Autenticado:** Debe ser redirigido directamente al fluxo de OAuth de Google o mostrar "Acceso Denegado". No debe mostrarse el contenido en el cliente bajo ninguna circunstancia.
 3. **SEO:** Ruta `/aplicaciones` con tag noindex/nofollow para evitar la indexación por buscadores.
-4. **Diseño Visual General:** La vista principal adopta un concepto tipo "sistema planetario". Cada aplicación privada debe representarse como un planeta u órbita (no infantil, elegante).
-5. **Configuración Centralizada:** Mantener un array accesible y no hardcoded para la lista de aplicaciones privadas en `src/data/privateApps.js`.
-6. **Tool Stack (Nuevo):** Para la sección de herramientas (Tool Stack), abandonar el estilo planetario. Utilizar un diseño premium tipo "command center" con tarjetas *glassmorphism*, bordes sutiles, hover microanimado y categorización estructurada. La data debe estar centralizada en `src/data/toolStack.js`.
+4. **Jerarquía Visual y Diseño (Nivel 1):** La vista principal DEBE mostrar las **Aplicaciones Propias** (CRM KPS, Car Admin, KPS Energy, Crypto Admin) en la parte superior. El diseño debe adoptar una estética "command center" limpia, premium y profesional (estilo Raycast/Linear). Queda **estrictamente prohibido** el uso de planetas, órbitas o nodos flotantes.
+5. **Configuración Centralizada (Nivel 1):** Mantener la lista de aplicaciones privadas principales en `src/data/privateApps.js`. No mezclar con utilidades.
+6. **Tool Stack (Nivel 2):** Debajo del Nivel 1 debe ubicarse la biblioteca de herramientas secundarias. La data debe estar en `src/data/toolStack.js`. Crypto Admin no pertenece aquí.
 
 ## Casos Borde y Trampas Conocidas (Actualizar al detectar errores)
 - *NextAuth Session Loading:* Asegurar el manejo de la sesión en el cliente (estado *loading*) o realizar la protección directamente por validación Server-Side (SSR en `getServerSideProps` preferiblemente para evitar UI blinks).
