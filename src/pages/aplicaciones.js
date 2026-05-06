@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import styles from '@/styles/Aplicaciones.module.css';
 import { privateApps } from '@/data/privateApps';
+import ToolStack from '@/components/ToolStack';
 
 export default function AplicacionesPage({ apps, accessDenied }) {
   if (accessDenied) {
@@ -62,6 +63,8 @@ export default function AplicacionesPage({ apps, accessDenied }) {
             </a>
           ))}
         </div>
+
+        <ToolStack />
 
       </section>
     </>
