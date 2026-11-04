@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import SEOHead from '@/components/SEOHead'
+import TurnstileWidget from '@/components/TurnstileWidget'
 import { buildContactPageSchema } from '@/lib/schemaOrg'
 import { trackLeadConversion, trackMicroConversion } from '@/lib/analytics'
 import styles from '@/styles/Contact.module.css'
@@ -28,10 +29,12 @@ const FIELDS = {
   mensaje: { label: 'Mensaje', required: true, placeholder: 'Contame en qué puedo ayudarte…' },
 }
 
-const USER_ERROR_MESSAGE =
-  'No pudimos enviar tu mensaje en este momento. Por favor, intentá nuevamente.'
-const USER_SUCCESS_MESSAGE =
+export const USER_SUCCESS_MESSAGE =
   'Tu mensaje fue enviado correctamente. Gracias por contactarme.'
+export const USER_ERROR_MESSAGE =
+  'No pudimos enviar tu mensaje. Intentá nuevamente.'
+export const USER_RATE_LIMIT_MESSAGE =
+  'Se realizaron demasiados intentos. Por favor, volvé a probar más tarde.'
 
 const INITIAL_VALUES = {
   nombre: '',
@@ -61,8 +64,8 @@ function validate(values) {
     errors.email = 'Ingresá un email válido.'
   }
 
-  if (values.empresa && values.empresa.trim().length > 160) {
-    errors.empresa = 'Máximo 160 caracteres.'
+  if (values.empresa && values.empresa.trim().length > 150) {
+    errors.empresa = 'Máximo 150 caracteres.'
   }
 
   if (values.telefono && !/^[0-9+\-() .\s]{0,40}$/.test(values.telefono.trim())) {
@@ -71,8 +74,8 @@ function validate(values) {
 
   if (!values.mensaje.trim()) {
     errors.mensaje = 'Este campo es requerido.'
-  } else if (values.mensaje.trim().length > 4000) {
-    errors.mensaje = 'Máximo 4000 caracteres.'
+  } else if (values.mensaje.trim().length > 3000) {
+    errors.mensaje = 'Máximo 3.000 caracteres.'
   }
   return errors
 }
@@ -80,6 +83,8 @@ function validate(values) {
 export default function Contacto() {
   const [values, setValues] = useState(INITIAL_VALUES)
   const [trap, setTrap] = useState('') // honeypot
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
   const [touched, setTouched] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -104,11 +109,17 @@ export default function Contacto() {
     e.preventDefault()
     if (isSubmittingRef.current || submitting) return
 
-    setTouched({ nombre: true, email: true, mensaje: true })
+    setTouched({ nombre: true, email: true, empresa: true, telefono: true, mensaje: true })
     setGlobalError('')
 
     const errs = validate(values)
     if (Object.keys(errs).length > 0) return
+
+    if (!turnstileToken) {
+      setGlobalError(USER_ERROR_MESSAGE)
+      setTurnstileResetKey((k) => k + 1)
+      return
+    }
 
     isSubmittingRef.current = true
     setSubmitting(true)
@@ -120,14 +131,28 @@ export default function Contacto() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, _trap: trap }),
+        body: JSON.stringify({
+          ...values,
+          _trap: trap,
+          turnstileToken,
+        }),
         signal: controller.signal,
       })
 
       const data = await res.json().catch(() => ({}))
 
+      if (res.status === 429) {
+        setTurnstileToken('')
+        setTurnstileResetKey((k) => k + 1)
+        setGlobalError(USER_RATE_LIMIT_MESSAGE)
+        return
+      }
+
       if (!res.ok || !data?.ok || !data?.providerAccepted) {
-        throw new Error(USER_ERROR_MESSAGE)
+        setTurnstileToken('')
+        setTurnstileResetKey((k) => k + 1)
+        setGlobalError(USER_ERROR_MESSAGE)
+        return
       }
 
       // Disparo único de conversión generate_lead (sin datos personales / PII)
@@ -139,11 +164,14 @@ export default function Contacto() {
         })
       }
 
-      // Limpiar formulario únicamente después de recibir confirmación de aceptación del proveedor
+      // Limpiar formulario únicamente después de recibir confirmación real del proveedor
       setValues(INITIAL_VALUES)
       setTouched({})
+      setTurnstileToken('')
       setSuccess(true)
     } catch {
+      setTurnstileToken('')
+      setTurnstileResetKey((k) => k + 1)
       setGlobalError(USER_ERROR_MESSAGE)
     } finally {
       clearTimeout(timer)
@@ -247,14 +275,16 @@ export default function Contacto() {
                   </div>
                 ) : (
                   <form className={styles.form} onSubmit={handleSubmit} noValidate>
-                    {/* Honeypot */}
+                    {/* Honeypot: oculto visualmente, no enfocable por teclado y oculto para lectores de pantalla */}
                     <div className={styles.trap} aria-hidden="true">
                       <input
+                        id="contact_hp_trap"
                         tabIndex={-1}
                         autoComplete="off"
+                        aria-hidden="true"
                         name="_trap"
                         value={trap}
-                        onChange={e => setTrap(e.target.value)}
+                        onChange={(e) => setTrap(e.target.value)}
                       />
                     </div>
 
@@ -268,6 +298,10 @@ export default function Contacto() {
                           id="nombre"
                           name="nombre"
                           type="text"
+                          required
+                          aria-required="true"
+                          aria-invalid={Boolean(touched.nombre && errors.nombre)}
+                          aria-describedby={touched.nombre && errors.nombre ? 'nombre-error' : undefined}
                           autoComplete="name"
                           maxLength={120}
                           placeholder="Tu nombre"
@@ -278,7 +312,9 @@ export default function Contacto() {
                           disabled={submitting}
                         />
                         {touched.nombre && errors.nombre && (
-                          <span className={styles.errorMsg}>{errors.nombre}</span>
+                          <span id="nombre-error" className={styles.errorMsg} role="alert">
+                            {errors.nombre}
+                          </span>
                         )}
                       </div>
 
@@ -290,6 +326,10 @@ export default function Contacto() {
                           id="email"
                           name="email"
                           type="email"
+                          required
+                          aria-required="true"
+                          aria-invalid={Boolean(touched.email && errors.email)}
+                          aria-describedby={touched.email && errors.email ? 'email-error' : undefined}
                           autoComplete="email"
                           maxLength={254}
                           placeholder="tu@email.com"
@@ -300,7 +340,9 @@ export default function Contacto() {
                           disabled={submitting}
                         />
                         {touched.email && errors.email && (
-                          <span className={styles.errorMsg}>{errors.email}</span>
+                          <span id="email-error" className={styles.errorMsg} role="alert">
+                            {errors.email}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -313,14 +355,22 @@ export default function Contacto() {
                           id="empresa"
                           name="empresa"
                           type="text"
+                          aria-invalid={Boolean(touched.empresa && errors.empresa)}
+                          aria-describedby={touched.empresa && errors.empresa ? 'empresa-error' : undefined}
                           autoComplete="organization"
-                          maxLength={160}
+                          maxLength={150}
                           placeholder="Opcional"
-                          className={styles.input}
+                          className={`${styles.input} ${touched.empresa && errors.empresa ? styles.inputError : ''}`}
                           value={values.empresa}
                           onChange={handleChange}
+                          onBlur={handleBlur}
                           disabled={submitting}
                         />
+                        {touched.empresa && errors.empresa && (
+                          <span id="empresa-error" className={styles.errorMsg} role="alert">
+                            {errors.empresa}
+                          </span>
+                        )}
                       </div>
                       <div className={styles.field}>
                         <label className={styles.label} htmlFor="telefono">Teléfono</label>
@@ -328,14 +378,22 @@ export default function Contacto() {
                           id="telefono"
                           name="telefono"
                           type="tel"
+                          aria-invalid={Boolean(touched.telefono && errors.telefono)}
+                          aria-describedby={touched.telefono && errors.telefono ? 'telefono-error' : undefined}
                           autoComplete="tel"
                           maxLength={40}
                           placeholder="Opcional"
-                          className={styles.input}
+                          className={`${styles.input} ${touched.telefono && errors.telefono ? styles.inputError : ''}`}
                           value={values.telefono}
                           onChange={handleChange}
+                          onBlur={handleBlur}
                           disabled={submitting}
                         />
+                        {touched.telefono && errors.telefono && (
+                          <span id="telefono-error" className={styles.errorMsg} role="alert">
+                            {errors.telefono}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -347,7 +405,11 @@ export default function Contacto() {
                       <textarea
                         id="mensaje"
                         name="mensaje"
-                        maxLength={4000}
+                        required
+                        aria-required="true"
+                        aria-invalid={Boolean(touched.mensaje && errors.mensaje)}
+                        aria-describedby={touched.mensaje && errors.mensaje ? 'mensaje-error' : undefined}
+                        maxLength={3000}
                         placeholder="Contame en qué puedo ayudarte…"
                         className={`${styles.textarea} ${touched.mensaje && errors.mensaje ? styles.inputError : ''}`}
                         value={values.mensaje}
@@ -357,9 +419,20 @@ export default function Contacto() {
                         disabled={submitting}
                       />
                       {touched.mensaje && errors.mensaje && (
-                        <span className={styles.errorMsg}>{errors.mensaje}</span>
+                        <span id="mensaje-error" className={styles.errorMsg} role="alert">
+                          {errors.mensaje}
+                        </span>
                       )}
                     </div>
+
+                    {/* Cloudflare Turnstile Managed (Invisible cuando sea permitido) */}
+                    <TurnstileWidget
+                      action="contact_submit"
+                      resetKey={turnstileResetKey}
+                      onVerify={(token) => setTurnstileToken(token)}
+                      onExpire={() => setTurnstileToken('')}
+                      onError={() => setTurnstileToken('')}
+                    />
 
                     {/* Submit row */}
                     <div className={styles.submitRow}>
@@ -371,7 +444,9 @@ export default function Contacto() {
                         {submitting ? 'Enviando…' : <>Enviar mensaje <ArrowIcon /></>}
                       </button>
                       {globalError && (
-                        <span className={styles.globalError} role="alert">{globalError}</span>
+                        <span className={styles.globalError} role="alert" aria-live="polite">
+                          {globalError}
+                        </span>
                       )}
                     </div>
                   </form>

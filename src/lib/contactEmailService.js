@@ -10,10 +10,33 @@ import nodemailer from 'nodemailer'
 export const FIELD_LIMITS = {
   nombre: 120,
   email: 254,
-  empresa: 160,
+  empresa: 150,
   telefono: 40,
-  mensaje: 4000,
+  mensaje: 3000,
 }
+
+export const MAX_PAYLOAD_BYTES = 16 * 1024 // 16 KB máximo total por solicitud
+export const MAX_CONCURRENT_DISPATCHES = Number(process.env.CONTACT_MAX_CONCURRENCY || 3)
+
+const FORBIDDEN_OVERRIDE_FIELDS = [
+  'to',
+  'cc',
+  'bcc',
+  'from',
+  'replyTo',
+  'reply_to',
+  'subject',
+  'template',
+  'html',
+  'text',
+  'apiKey',
+  'api_key',
+  'smtp',
+  'headers',
+]
+
+const FORBIDDEN_ATTACHMENT_FIELDS = ['attachments', 'attachment', 'files', 'file', 'blob']
+
 
 export const DEFAULT_TO_EMAIL = 'gaston.alejandro.ramos@gmail.com'
 export const DEFAULT_CC_EMAIL = 'ramos.gastón@kopernicus.tech'
@@ -137,13 +160,32 @@ export function resolveConfiguredRecipients() {
  * Valida y sanitiza la entrada del formulario en el servidor.
  */
 export function validateAndSanitizeContactInput(body = {}) {
-  if (!body || typeof body !== 'object') {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { valid: false, errorCode: 'INVALID_PAYLOAD' }
   }
 
-  // rechazar cualquier intento de inyectar destinatarios desde el cliente
-  if ('to' in body || 'cc' in body || 'bcc' in body) {
-    return { valid: false, errorCode: 'RECIPIENT_OVERRIDE_FORBIDDEN' }
+  // Verificar tamaño total de la solicitud (máximo 16 KB)
+  try {
+    const byteLength = Buffer.byteLength(JSON.stringify(body), 'utf8')
+    if (byteLength > MAX_PAYLOAD_BYTES) {
+      return { valid: false, errorCode: 'PAYLOAD_TOO_LARGE' }
+    }
+  } catch {
+    return { valid: false, errorCode: 'INVALID_PAYLOAD' }
+  }
+
+  // Rechazar adjuntos (no se aceptan archivos adjuntos)
+  for (const field of FORBIDDEN_ATTACHMENT_FIELDS) {
+    if (field in body && body[field] !== undefined && body[field] !== null) {
+      return { valid: false, errorCode: 'ATTACHMENTS_FORBIDDEN' }
+    }
+  }
+
+  // Rechazar cualquier intento de inyectar destinatarios, remitentes, plantillas o credenciales desde el cliente
+  for (const field of FORBIDDEN_OVERRIDE_FIELDS) {
+    if (field in body) {
+      return { valid: false, errorCode: 'RECIPIENT_OVERRIDE_FORBIDDEN' }
+    }
   }
 
   const rawNombre = typeof body.nombre === 'string' ? body.nombre.trim() : ''
@@ -151,6 +193,16 @@ export function validateAndSanitizeContactInput(body = {}) {
   const rawEmpresa = typeof body.empresa === 'string' ? body.empresa.trim() : ''
   const rawTelefono = typeof body.telefono === 'string' ? body.telefono.trim() : ''
   const rawMensaje = typeof body.mensaje === 'string' ? body.mensaje.trim() : ''
+
+  // Detectar caracteres de control o saltos de línea (Header Injection CRLF) ANTES de cualquier otra validación
+  if (
+    /[\r\n\0]/.test(rawNombre) ||
+    /[\r\n\0]/.test(rawEmail) ||
+    /[\r\n\0]/.test(rawEmpresa) ||
+    /[\r\n\0]/.test(rawTelefono)
+  ) {
+    return { valid: false, errorCode: 'HEADER_INJECTION_DETECTED' }
+  }
 
   if (!rawNombre || !rawEmail || !rawMensaje) {
     return { valid: false, errorCode: 'MISSING_REQUIRED_FIELDS' }
@@ -164,10 +216,6 @@ export function validateAndSanitizeContactInput(body = {}) {
     rawMensaje.length > FIELD_LIMITS.mensaje
   ) {
     return { valid: false, errorCode: 'FIELD_LENGTH_EXCEEDED' }
-  }
-
-  if (/[\r\n\0]/.test(rawNombre) || /[\r\n\0]/.test(rawEmpresa) || /[\r\n\0]/.test(rawTelefono)) {
-    return { valid: false, errorCode: 'HEADER_INJECTION_DETECTED' }
   }
 
   const emailValidation = validateEmailAddress(rawEmail)
@@ -308,156 +356,219 @@ function isPlaceholderCredential(val) {
   return false
 }
 
+let activeDispatches = 0
+
+export function getActiveDispatchCount() {
+  return activeDispatches
+}
+
 /**
  * Envía el correo utilizando el patrón CloudflareEmailProvider de InspeXiona
  * (`https://api.cloudflare.com/client/v4/accounts/{accountId}/email/sending/send`).
- * Incluye control de timeout (`AbortController`), Reply-To seguro al visitante y From institucional.
+ * Incluye control de concurrencia, timeout (`AbortController`), Reply-To seguro al visitante y From institucional.
  */
 export async function dispatchContactEmail(
   sanitizedData,
-  { timeoutMs = 10000, fetchImpl = global.fetch } = {}
+  { timeoutMs = 10000, fetchImpl = global.fetch, qaMockMode = null } = {}
 ) {
   const recipients = resolveConfiguredRecipients()
   const { subject, text, html } = buildContactEmailContent(sanitizedData)
 
-  const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
-  const cfApiToken = process.env.CLOUDFLARE_EMAIL_API_TOKEN?.trim()
-  const rawFrom =
-    process.env.CLOUDFLARE_EMAIL_FROM ||
-    process.env.CLOUDFLARE_EMAIL_FROM_ADDRESS ||
-    'GAR | gastonramos.com.ar <notificaciones@mail.inspexiona.com.ar>'
-  const { address: fromAddress, name: fromName } = parseFromHeader(rawFrom)
+  // Control de concurrencia para proteger la cuota y disponibilidad del proveedor de email
+  if (activeDispatches >= MAX_CONCURRENT_DISPATCHES) {
+    return {
+      ok: false,
+      providerAccepted: false,
+      provider: 'CONCURRENCY_GUARD',
+      errorCode: 'CONCURRENCY_LIMIT_EXCEEDED',
+      recipientsStatus: recipients,
+    }
+  }
 
-  // 1. Proveedor Primario: Cloudflare Email Sending REST API (Patrón InspeXiona)
-  if (!isPlaceholderCredential(cfAccountId) && !isPlaceholderCredential(cfApiToken)) {
-    const endpoint = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/sending/send`
-
-    const payload = {
-      from: {
-        address: fromAddress,
-        name: fromName,
-      },
-      to: recipients.to,
-      reply_to: sanitizedData.email,
-      subject,
-      html,
-      text,
+  activeDispatches += 1
+  try {
+    // Modo de doble de prueba determinista exclusivamente para QA / Automatización (nunca en producción)
+    if (process.env.NODE_ENV !== 'production' && qaMockMode) {
+      if (qaMockMode === 'slow_success') {
+        await new Promise((r) => setTimeout(r, 120))
+        return {
+          ok: true,
+          providerAccepted: true,
+          provider: 'CLOUDFLARE_QA_DOUBLE',
+          messageId: 'qa-msg-concurrent-ok',
+          recipientsStatus: recipients,
+        }
+      }
+      if (qaMockMode === 'unavailable') {
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'CLOUDFLARE_QA_DOUBLE',
+          errorCode: 'PROVIDER_HTTP_503',
+          recipientsStatus: recipients,
+        }
+      }
+      if (qaMockMode === 'timeout') {
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'CLOUDFLARE_QA_DOUBLE',
+          errorCode: 'PROVIDER_TIMEOUT',
+          recipientsStatus: recipients,
+        }
+      }
+      if (qaMockMode === 'success') {
+        return {
+          ok: true,
+          providerAccepted: true,
+          provider: 'CLOUDFLARE_QA_DOUBLE',
+          messageId: 'qa-msg-verified-ok',
+          recipientsStatus: recipients,
+        }
+      }
     }
 
-    if (recipients.cc) {
-      payload.cc = recipients.cc
-    }
+    const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
+    const cfApiToken = process.env.CLOUDFLARE_EMAIL_API_TOKEN?.trim()
+    const rawFrom =
+      process.env.CLOUDFLARE_EMAIL_FROM ||
+      process.env.CLOUDFLARE_EMAIL_FROM_ADDRESS ||
+      'GAR | gastonramos.com.ar <notificaciones@mail.inspexiona.com.ar>'
+    const { address: fromAddress, name: fromName } = parseFromHeader(rawFrom)
 
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    // 1. Proveedor Primario: Cloudflare Email Sending REST API (Patrón InspeXiona)
+    if (!isPlaceholderCredential(cfAccountId) && !isPlaceholderCredential(cfApiToken)) {
+      const endpoint = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/sending/send`
 
-    try {
-      const response = await fetchImpl(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${cfApiToken}`,
-          'Content-Type': 'application/json',
+      const payload = {
+        from: {
+          address: fromAddress,
+          name: fromName,
         },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      })
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'CLOUDFLARE',
-          errorCode: `PROVIDER_HTTP_${response.status}`,
-          recipientsStatus: recipients,
-        }
-      }
-
-      const resData = await response.json().catch(() => ({}))
-      const isBounced = resData?.result?.permanent_bounces?.includes(recipients.to)
-      if (isBounced) {
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'CLOUDFLARE',
-          errorCode: 'PERMANENT_BOUNCE',
-          recipientsStatus: recipients,
-        }
-      }
-
-      const messageId = resData?.result?.id || resData?.result?.message_id || null
-      return {
-        ok: true,
-        providerAccepted: true,
-        provider: 'CLOUDFLARE',
-        messageId,
-        recipientsStatus: recipients,
-      }
-    } catch (err) {
-      const isTimeout = err?.name === 'AbortError'
-      return {
-        ok: false,
-        providerAccepted: false,
-        provider: 'CLOUDFLARE',
-        errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
-        recipientsStatus: recipients,
-      }
-    } finally {
-      clearTimeout(timer)
-    }
-  }
-
-  // 2. Fallback secundario: SMTP (solo si existen credenciales reales, no placeholders)
-  const smtpUser = process.env.SMTP_USER?.trim()
-  const smtpPass = process.env.SMTP_PASS?.trim()
-  if (!isPlaceholderCredential(smtpUser) && !isPlaceholderCredential(smtpPass)) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: process.env.SMTP_SERVICE || 'gmail',
-        auth: { user: smtpUser, pass: smtpPass },
-        connectionTimeout: timeoutMs,
-        greetingTimeout: timeoutMs,
-        socketTimeout: timeoutMs,
-      })
-
-      const mailOptions = {
-        from: `"GAR | gastonramos.com.ar" <${smtpUser}>`,
         to: recipients.to,
-        replyTo: sanitizedData.email,
+        reply_to: sanitizedData.email,
         subject,
-        text,
         html,
-      }
-      if (recipients.cc) {
-        mailOptions.cc = recipients.cc
+        text,
       }
 
-      const info = await transporter.sendMail(mailOptions)
-      return {
-        ok: true,
-        providerAccepted: true,
-        provider: 'SMTP',
-        messageId: info?.messageId || null,
-        recipientsStatus: recipients,
+      if (recipients.cc) {
+        payload.cc = recipients.cc
       }
-    } catch (err) {
-      const isTimeout = err?.code === 'ETIMEDOUT' || err?.message?.includes('Timeout')
-      return {
-        ok: false,
-        providerAccepted: false,
-        provider: 'SMTP',
-        errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'SMTP_SEND_ERROR',
-        recipientsStatus: recipients,
+
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+      try {
+        const response = await fetchImpl(endpoint, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${cfApiToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          return {
+            ok: false,
+            providerAccepted: false,
+            provider: 'CLOUDFLARE',
+            errorCode: `PROVIDER_HTTP_${response.status}`,
+            recipientsStatus: recipients,
+          }
+        }
+
+        const resData = await response.json().catch(() => ({}))
+        const isBounced = resData?.result?.permanent_bounces?.includes(recipients.to)
+        if (isBounced) {
+          return {
+            ok: false,
+            providerAccepted: false,
+            provider: 'CLOUDFLARE',
+            errorCode: 'PERMANENT_BOUNCE',
+            recipientsStatus: recipients,
+          }
+        }
+
+        const messageId = resData?.result?.id || resData?.result?.message_id || null
+        return {
+          ok: true,
+          providerAccepted: true,
+          provider: 'CLOUDFLARE',
+          messageId,
+          recipientsStatus: recipients,
+        }
+      } catch (err) {
+        const isTimeout = err?.name === 'AbortError'
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'CLOUDFLARE',
+          errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
+          recipientsStatus: recipients,
+        }
+      } finally {
+        clearTimeout(timer)
       }
     }
-  }
 
-  // 3. Sin credenciales válidas configuradas (Fail-Closed honesto)
-  return {
-    ok: false,
-    providerAccepted: false,
-    provider: 'UNCONFIGURED',
-    errorCode: 'PROVIDER_CREDENTIALS_MISSING',
-    recipientsStatus: recipients,
+    // 2. Fallback secundario: SMTP (solo si existen credenciales reales, no placeholders)
+    const smtpUser = process.env.SMTP_USER?.trim()
+    const smtpPass = process.env.SMTP_PASS?.trim()
+    if (!isPlaceholderCredential(smtpUser) && !isPlaceholderCredential(smtpPass)) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: process.env.SMTP_SERVICE || 'gmail',
+          auth: { user: smtpUser, pass: smtpPass },
+          connectionTimeout: timeoutMs,
+          greetingTimeout: timeoutMs,
+          socketTimeout: timeoutMs,
+        })
+
+        const mailOptions = {
+          from: `"GAR | gastonramos.com.ar" <${smtpUser}>`,
+          to: recipients.to,
+          replyTo: sanitizedData.email,
+          subject,
+          text,
+          html,
+        }
+        if (recipients.cc) {
+          mailOptions.cc = recipients.cc
+        }
+
+        const info = await transporter.sendMail(mailOptions)
+        return {
+          ok: true,
+          providerAccepted: true,
+          provider: 'SMTP',
+          messageId: info?.messageId || null,
+          recipientsStatus: recipients,
+        }
+      } catch (err) {
+        const isTimeout = err?.code === 'ETIMEDOUT' || err?.message?.includes('Timeout')
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'SMTP',
+          errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'SMTP_SEND_ERROR',
+          recipientsStatus: recipients,
+        }
+      }
+    }
+
+    // 3. Sin credenciales válidas configuradas (Fail-Closed honesto)
+    return {
+      ok: false,
+      providerAccepted: false,
+      provider: 'UNCONFIGURED',
+      errorCode: 'PROVIDER_CREDENTIALS_MISSING',
+      recipientsStatus: recipients,
+    }
+  } finally {
+    activeDispatches = Math.max(0, activeDispatches - 1)
   }
 }
 
@@ -471,3 +582,4 @@ export function computeSubmissionFingerprint(ip, email, mensaje) {
     .update(`${ip || 'unknown'}|${String(email || '').toLowerCase()}|${String(mensaje || '').trim()}`)
     .digest('hex')
 }
+

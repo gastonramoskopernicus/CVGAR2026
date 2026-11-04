@@ -1,127 +1,236 @@
 import {
   validateAndSanitizeContactInput,
   dispatchContactEmail,
-  computeSubmissionFingerprint,
+  MAX_PAYLOAD_BYTES,
 } from '@/lib/contactEmailService'
+import { verifyTurnstileToken, EXPECTED_TURNSTILE_ACTION } from '@/lib/turnstileVerify'
+import {
+  resolveTrustedClientIp,
+  evaluateContactRateLimits,
+  releaseDuplicateLockOnFailure,
+  resetRateLimiterStoreForTests,
+} from '@/lib/contactRateLimiter'
+import {
+  generateRequestId,
+  recordContactSecurityEvent,
+  readObservabilityState,
+  resetObservabilityForTests,
+} from '@/lib/contactObservability'
 
-const USER_SAFE_ERROR_MSG =
-  'No pudimos enviar tu mensaje en este momento. Por favor, intentá nuevamente.'
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '16kb',
+    },
+  },
+}
 
-// Rate limit en memoria por IP (máximo 5 envíos por hora por origen)
-const rateLimitMap = new Map()
-// Mapa de huellas SHA-256 para prevenir envíos duplicados por doble clic (ventana de 60 segundos)
-const recentSubmissionsMap = new Map()
+export const USER_SAFE_ERROR_MSG = 'No pudimos enviar tu mensaje. Intentá nuevamente.'
+export const USER_RATE_LIMIT_MSG =
+  'Se realizaron demasiados intentos. Por favor, volvé a probar más tarde.'
 
 export function resetContactRateLimitsForTests() {
-  rateLimitMap.clear()
-  recentSubmissionsMap.clear()
-}
-
-function resolveClientIp(req) {
-  const forwarded = req.headers?.['x-forwarded-for']
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0].trim()
-  }
-  return req.socket?.remoteAddress || 'unknown'
-}
-
-function checkRateLimit(ip) {
-  const now = Date.now()
-  const windowMs = 60 * 60 * 1000 // 1 hora
-  const maxRequests = Number(process.env.CONTACT_RATE_LIMIT_MAX || 5)
-
-  const entry = rateLimitMap.get(ip)
-  if (!entry || now - entry.start > windowMs) {
-    rateLimitMap.set(ip, { count: 1, start: now })
-    return true
-  }
-
-  if (entry.count >= maxRequests) {
-    return false
-  }
-
-  entry.count += 1
-  return true
-}
-
-function isDuplicateSubmission(fingerprint) {
-  const now = Date.now()
-  const duplicateWindowMs = 60 * 1000 // 60 segundos
-  const lastSeen = recentSubmissionsMap.get(fingerprint)
-  if (lastSeen && now - lastSeen < duplicateWindowMs) {
-    return true
-  }
-  recentSubmissionsMap.set(fingerprint, now)
-  return false
+  resetRateLimiterStoreForTests()
+  resetObservabilityForTests()
 }
 
 export default async function handler(req, res) {
+  const requestId = generateRequestId()
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+  res.setHeader('X-Request-Id', requestId)
+
+  // En entorno QA/Desarrollo, permitir comandos de soporte del arnés de pruebas automatizadas
+  const isQaHarness =
+    process.env.NODE_ENV !== 'production' && req.headers?.['x-qa-test-suite'] === 'gar-antispam-qa'
+
+  if (isQaHarness && req.headers?.['x-qa-action'] === 'reset-state') {
+    resetContactRateLimitsForTests()
+    return res.status(200).json({ ok: true, reset: true })
+  }
+
+  if (isQaHarness && req.headers?.['x-qa-action'] === 'read-observability') {
+    return res.status(200).json({ ok: true, observability: readObservabilityState() })
+  }
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST'])
     return res.status(405).json({ ok: false, error: USER_SAFE_ERROR_MSG })
   }
 
+  const ip = resolveTrustedClientIp(req)
   const body = req.body && typeof req.body === 'object' ? req.body : {}
 
-  // Honeypot antispam — si un bot completa el campo oculto, descartar silenciosamente sin enviar correo ni disparar lead
-  if (body._trap && String(body._trap).trim() !== '') {
-    return res.status(200).json({ ok: true, providerAccepted: false, spamFiltered: true })
-  }
-
-  // Validación y sanitización server-side (antes de consumir cuota de rate limit por errores de tipeo)
-  const validation = validateAndSanitizeContactInput(body)
-  if (!validation.valid) {
+  // 1. Verificar tamaño máximo del payload (16 KB)
+  try {
+    const rawSize = Buffer.byteLength(JSON.stringify(body), 'utf8')
+    if (rawSize > MAX_PAYLOAD_BYTES) {
+      recordContactSecurityEvent({
+        requestId,
+        validationResult: 'BLOCKED_PAYLOAD',
+        accepted: false,
+        technicalReason: 'PAYLOAD_TOO_LARGE',
+        providerResult: 'SKIPPED',
+        ip,
+      })
+      return res.status(413).json({
+        ok: false,
+        providerAccepted: false,
+        error: USER_SAFE_ERROR_MSG,
+      })
+    }
+  } catch {
+    recordContactSecurityEvent({
+      requestId,
+      validationResult: 'BLOCKED_PAYLOAD',
+      accepted: false,
+      technicalReason: 'INVALID_PAYLOAD',
+      providerResult: 'SKIPPED',
+      ip,
+    })
     return res.status(400).json({
       ok: false,
       providerAccepted: false,
-      code: validation.errorCode,
       error: USER_SAFE_ERROR_MSG,
     })
   }
 
-  const ip = resolveClientIp(req)
-
-  // Prevención de doble clic / reenvío idéntico en ventana corta
-  const fingerprint = computeSubmissionFingerprint(
-    ip,
-    validation.data.email,
-    validation.data.mensaje
-  )
-  if (isDuplicateSubmission(fingerprint)) {
-    return res.status(409).json({
+  // 2. Honeypot antispam — si está completo, bloquear envío sin llamar al proveedor y registrar evento
+  if (body._trap && String(body._trap).trim() !== '') {
+    recordContactSecurityEvent({
+      requestId,
+      validationResult: 'BLOCKED_HONEYPOT',
+      accepted: false,
+      technicalReason: 'HONEYPOT_TRIGGERED',
+      providerResult: 'SKIPPED',
+      ip,
+      email: typeof body.email === 'string' ? body.email : '',
+    })
+    return res.status(400).json({
       ok: false,
       providerAccepted: false,
-      code: 'DUPLICATE_SUBMISSION',
       error: USER_SAFE_ERROR_MSG,
     })
   }
 
-  // Rate limit por origen
-  if (!checkRateLimit(ip)) {
-    recentSubmissionsMap.delete(fingerprint)
+  // 3. Validación estricta de contenido, campos prohibidos (to, cc, bcc, from, template, attachments) y CRLF
+  const validation = validateAndSanitizeContactInput(body)
+  if (!validation.valid) {
+    recordContactSecurityEvent({
+      requestId,
+      validationResult: 'BLOCKED_VALIDATION',
+      accepted: false,
+      technicalReason: validation.errorCode || 'VALIDATION_FAILED',
+      providerResult: 'SKIPPED',
+      ip,
+      email: typeof body.email === 'string' ? body.email : '',
+    })
+    return res.status(400).json({
+      ok: false,
+      providerAccepted: false,
+      error: USER_SAFE_ERROR_MSG,
+    })
+  }
+
+  // 4. Validación server-side de Cloudflare Turnstile (Siteverify + Single-Use Token Ledger)
+  const turnstileToken =
+    typeof body.turnstileToken === 'string'
+      ? body.turnstileToken
+      : typeof body['cf-turnstile-response'] === 'string'
+      ? body['cf-turnstile-response']
+      : ''
+
+  const turnstileCheck = await verifyTurnstileToken({
+    token: turnstileToken,
+    remoteip: ip,
+    expectedAction: EXPECTED_TURNSTILE_ACTION,
+  })
+
+  if (!turnstileCheck.success) {
+    recordContactSecurityEvent({
+      requestId,
+      validationResult: 'BLOCKED_TURNSTILE',
+      accepted: false,
+      technicalReason: turnstileCheck.errorCode || 'TURNSTILE_VERIFICATION_FAILED',
+      providerResult: 'SKIPPED',
+      ip,
+      email: validation.data.email,
+    })
+    // No exponer detalles internos de validación de Turnstile al navegador
+    return res.status(400).json({
+      ok: false,
+      providerAccepted: false,
+      error: USER_SAFE_ERROR_MSG,
+    })
+  }
+
+  // 5. Rate Limiting Distribuido (IP 15m, IP 24h, Email 60m, Global 60m) + Duplicados (30m)
+  const idempotencyKey =
+    typeof req.headers?.['x-idempotency-key'] === 'string'
+      ? req.headers['x-idempotency-key']
+      : typeof body.idempotencyKey === 'string'
+      ? body.idempotencyKey
+      : ''
+
+  const rateLimitResult = await evaluateContactRateLimits({
+    ip,
+    email: validation.data.email,
+    nombre: validation.data.nombre,
+    mensaje: validation.data.mensaje,
+    idempotencyKey,
+  })
+
+  if (!rateLimitResult.allowed) {
+    const isDuplicate = rateLimitResult.limitCategory === 'duplicate_30m'
+    recordContactSecurityEvent({
+      requestId,
+      validationResult: isDuplicate ? 'BLOCKED_DUPLICATE' : 'BLOCKED_RATE_LIMIT',
+      accepted: false,
+      technicalReason: rateLimitResult.code,
+      providerResult: 'SKIPPED',
+      ip,
+      email: validation.data.email,
+      limitCategory: rateLimitResult.limitCategory,
+      globalQuotaAlert: Boolean(rateLimitResult.globalQuotaAlert),
+    })
+
     return res.status(429).json({
       ok: false,
       providerAccepted: false,
-      code: 'RATE_LIMITED',
-      error: USER_SAFE_ERROR_MSG,
+      error: USER_RATE_LIMIT_MSG,
     })
   }
 
-  const sendResult = await dispatchContactEmail(validation.data)
+  // 6. Despacho seguro hacia el proveedor de email (con control de concurrencia y timeout)
+  const qaMockMode = isQaHarness ? req.headers?.['x-qa-mock-provider'] || null : null
+  const sendResult = await dispatchContactEmail(validation.data, { qaMockMode })
 
   if (!sendResult.ok || !sendResult.providerAccepted) {
-    // Si falló el proveedor, liberar la huella para permitir que el usuario reintente legítimamente
-    recentSubmissionsMap.delete(fingerprint)
-
-    // Log seguro sin datos personales (sin nombre, email, teléfono ni mensaje)
-    console.error('[api/contact] Fallo en despacho de correo:', {
-      provider: sendResult.provider,
-      errorCode: sendResult.errorCode,
-      ccValid: sendResult.recipientsStatus?.ccStatus?.valid ?? false,
-      timestamp: new Date().toISOString(),
+    // Liberar bloqueo de mensaje duplicado cuando el fallo es del proveedor para permitir reintento legítimo
+    releaseDuplicateLockOnFailure({
+      messageHash: rateLimitResult.messageHash,
+      cleanIdemKey: rateLimitResult.cleanIdemKey,
     })
+
+    const isConcurrencyLimit = sendResult.errorCode === 'CONCURRENCY_LIMIT_EXCEEDED'
+
+    recordContactSecurityEvent({
+      requestId,
+      validationResult: isConcurrencyLimit ? 'BLOCKED_CONCURRENCY' : 'PASS',
+      accepted: false,
+      technicalReason: sendResult.errorCode || 'PROVIDER_FAILURE',
+      providerResult: `${sendResult.provider || 'UNKNOWN'}_${sendResult.errorCode || 'ERROR'}`,
+      ip,
+      email: validation.data.email,
+      limitCategory: isConcurrencyLimit ? 'concurrency' : null,
+    })
+
+    if (isConcurrencyLimit) {
+      return res.status(429).json({
+        ok: false,
+        providerAccepted: false,
+        error: USER_RATE_LIMIT_MSG,
+      })
+    }
 
     const status =
       sendResult.errorCode === 'PROVIDER_TIMEOUT'
@@ -133,15 +242,24 @@ export default async function handler(req, res) {
     return res.status(status).json({
       ok: false,
       providerAccepted: false,
-      code: sendResult.errorCode,
       error: USER_SAFE_ERROR_MSG,
     })
   }
 
+  // 7. Éxito verificado -> Registrar evento legítimo aceptado
+  recordContactSecurityEvent({
+    requestId,
+    validationResult: 'PASS',
+    accepted: true,
+    technicalReason: 'OK',
+    providerResult: `${sendResult.provider}_OK`,
+    ip,
+    email: validation.data.email,
+  })
+
   return res.status(200).json({
     ok: true,
     providerAccepted: true,
-    provider: sendResult.provider,
-    messageId: sendResult.messageId || null,
+    requestId,
   })
 }

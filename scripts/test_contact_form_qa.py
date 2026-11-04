@@ -206,6 +206,12 @@ def main():
     )
 
     print("\n=== 2. LIVE HTTP ENDPOINT TESTS AGAINST http://localhost:3000/api/contact ===")
+    post_json(
+        "/api/contact",
+        {},
+        headers={"x-qa-test-suite": "gar-antispam-qa", "x-qa-action": "reset-state"},
+    )
+
     # 2.1 Honeypot check
     st, body = post_json(
         "/api/contact",
@@ -218,8 +224,8 @@ def main():
         headers={"X-Forwarded-For": "10.99.0.1"},
     )
     assert_true(
-        st == 200 and body.get("spamFiltered") is True and body.get("providerAccepted") is False,
-        "Honeypot silently filters spam with providerAccepted: false",
+        st == 400 and body.get("providerAccepted") is False,
+        "Honeypot blocks spam with HTTP 400 and providerAccepted: false",
     )
 
     # 2.2 Missing required field
@@ -229,7 +235,7 @@ def main():
         headers={"X-Forwarded-For": "10.99.0.2"},
     )
     assert_true(
-        st == 400 and body.get("code") == "MISSING_REQUIRED_FIELDS",
+        st == 400 and body.get("providerAccepted") is False,
         "Live API rejects missing nombre with HTTP 400",
     )
 
@@ -240,7 +246,7 @@ def main():
         headers={"X-Forwarded-For": "10.99.0.2"},
     )
     assert_true(
-        st == 400 and body.get("code") == "INVALID_EMAIL",
+        st == 400 and body.get("providerAccepted") is False,
         "Live API rejects invalid email with HTTP 400",
     )
 
@@ -253,33 +259,36 @@ def main():
             "empresa": "GAR QA",
             "telefono": "+54 11 4444-4444",
             "mensaje": "Prueba de diagnóstico QA",
+            "turnstileToken": "qa-valid-token-form-check-1",
         },
         headers={"X-Forwarded-For": "10.99.0.3"},
     )
     assert_true(
         st == 503
         and body.get("providerAccepted") is False
-        and body.get("error") == "No pudimos enviar tu mensaje en este momento. Por favor, intentá nuevamente.",
+        and body.get("error") == "No pudimos enviar tu mensaje. Intentá nuevamente.",
         "Live API returns HTTP 503 with user-safe error message when provider credentials are placeholders/missing",
     )
 
-    # 2.5 Rate limiting check (5 requests per IP allowed; 6th returns 429)
+    # 2.5 Rate limiting check (3 requests per IP allowed in 15m; 4th returns 429)
     test_ip = "10.99.88.77"
     last_status = None
     last_body = None
-    for i in range(6):
+    for i in range(4):
         last_status, last_body = post_json(
             "/api/contact",
             {
-                "nombre": "Gastón Ramos",
-                "email": "gaston.alejandro.ramos@gmail.com",
+                "nombre": f"Visitante {i}",
+                "email": f"visitante{i}@empresa{i}.com",
                 "mensaje": f"Mensaje distinto para prueba rate limit #{i}",
+                "turnstileToken": f"qa-valid-token-rl-{i}",
             },
             headers={"X-Forwarded-For": test_ip},
         )
     assert_true(
-        last_status == 429 and last_body.get("code") == "RATE_LIMITED",
-        "Live API enforces per-IP rate limiting (HTTP 429 on 6th request)",
+        last_status == 429
+        and last_body.get("error") == "Se realizaron demasiados intentos. Por favor, volvé a probar más tarde.",
+        "Live API enforces per-IP rate limiting (HTTP 429 on 4th request in 15m)",
     )
 
     print("\nALL QA CONTACT FORM TESTS PASSED!")
@@ -287,3 +296,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

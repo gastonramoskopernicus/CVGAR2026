@@ -48,6 +48,43 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - Logs sin PII sensible.
 3. **Experiencia de Usuario en `/contacto`:**
    - Éxito: mostrar `"Tu mensaje fue enviado correctamente. Gracias por contactarme."` y limpiar el formulario únicamente tras confirmación real del proveedor (`providerAccepted: true`).
-   - Error: mostrar `"No pudimos enviar tu mensaje en este momento. Por favor, intentá nuevamente."` sin exponer detalles técnicos y conservando los datos en los campos.
+   - Error general: mostrar `"No pudimos enviar tu mensaje. Intentá nuevamente."` sin exponer detalles técnicos y conservando los datos en los campos.
+   - Demasiados intentos (`HTTP 429`): mostrar `"Se realizaron demasiados intentos. Por favor, volvé a probar más tarde."` sin revelar umbrales internos.
 4. **Conversión `generate_lead`:**
    - Disparar únicamente cuando `res.ok && data.ok && data.providerAccepted === true`, una sola vez por envío, y sin incluir ningún dato personal (`nombre`, `email`, `telefono`, `empresa`, `mensaje`) en el payload analítico.
+
+---
+
+## 6. Protección Antispam, Turnstile, Rate Limiting Distribuido y Observabilidad
+1. **Cloudflare Turnstile (Modo Managed / Interacción Invisible cuando sea permitido):**
+   - Widget en frontend (`src/components/TurnstileWidget.js`) con `appearance: 'interaction-only'` y `action: 'contact_submit'`, utilizando clave pública de QA (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, con fallback seguro en QA a la clave oficial de prueba de Cloudflare `1x00000000000000000000AA`).
+   - Validación exclusivamente en servidor (`src/lib/turnstileVerify.js`) contra `https://challenges.cloudflare.com/turnstile/v0/siteverify` con `TURNSTILE_SECRET_KEY` (jamás expuesta al cliente).
+   - Verificación estricta de `success === true`, `action === 'contact_submit'`, `hostname` dentro de la lista blanca autorizada (`gastonramos.com.ar`, `localhost`, `127.0.0.1`, previews de Vercel del proyecto), y antigüedad del challenge.
+   - **Prevención de Reutilización (Single-Use Token Ledger):** Todo token validado se registra mediante su hash SHA-256 en almacenamiento persistente con TTL de 15 minutos; cualquier intento de reutilizar un token es rechazado inmediatamente con `TOKEN_REUSED` antes de despachar correo.
+2. **Rate Limiting Distribuido y Multi-Nivel (`src/lib/contactRateLimiter.js`):**
+   - Arquitectura híbrida sin servicios pagos no autorizados: soporta **Upstash Redis REST** (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`) para despliegues serverless multi-instancia y un **almacén persistente compartido en disco con escritura atómica** (`.storage/security/contact-rate-limits.json`) para QA/desarrollo o nodos locales (no depende exclusivamente de la memoria volátil del proceso).
+   - **Umbrales configurables por entorno:**
+     - **Por IP (corto plazo):** `3` envíos cada `15` minutos (`CONTACT_RL_IP_15M=3`).
+     - **Por IP (diario):** `10` envíos cada `24` horas (`CONTACT_RL_IP_24H=10`).
+     - **Por Email declarado:** `3` envíos cada `60` minutos (`CONTACT_RL_EMAIL_60M=3`).
+     - **Global del formulario:** `30` envíos cada `60` minutos (`CONTACT_RL_GLOBAL_60M=30`) — emite alerta interna de seguridad cuando se alcanza.
+     - **Mensajes idénticos (Duplicados):** bloqueo durante `30` minutos (`CONTACT_DUPLICATE_TTL_MIN=30`) mediante hash SHA-256 de campos normalizados (`email` + `nombre` + `mensaje`), sin almacenar el texto del mensaje.
+   - **Extracción segura de IP:** priorizar encabezados inyectados por proxies confiables (`cf-connecting-ip`, `x-vercel-forwarded-for`, o el primer hop confiable en entorno local/QA), ignorando cabeceras arbitrarias (`x-client-ip`, `client-ip`, etc.).
+3. **Honeypot Accesible (`_trap`):**
+   - Invisible visualmente, fuera de foco de teclado (`tabIndex={-1}`), oculto para lectores de pantalla (`aria-hidden="true"`), `autoComplete="off"`, sin interferir con autocompletado legítimo.
+   - Si viene completado, se rechaza el envío en backend sin llamar al proveedor de correo y se registra en observabilidad como solicitud bloqueada (`HONEYPOT_TRIGGERED`).
+4. **Validación Estricta de Contenido y Tamaño:**
+   - Tamaño máximo total de la solicitud: **16 KB** (`16384` bytes; `api.bodyParser.sizeLimit = '16kb'` + verificación explícita en handler).
+   - Límites por campo: `nombre <= 120`, `email <= 254`, `empresa <= 150`, `telefono <= 40`, `mensaje <= 3000`.
+   - Prohibición explícita de adjuntos (`attachments`, `files`, `file`, `attachment`) y de parámetros de control (`to`, `cc`, `bcc`, `from`, `replyTo`, `subject`, `template`, `html`, `apiKey`, `smtp`).
+5. **Protección del Proveedor de Email y Concurrencia:**
+   - Semáforo de concurrencia máxima (`MAX_CONCURRENT_DISPATCHES = 3`) para evitar ráfagas simultáneas hacia Cloudflare Email API / SMTP.
+   - Timeout estricto de `10s` (`AbortController`) y cero reintentos infinitos.
+6. **Observabilidad sin PII (`src/lib/contactObservability.js`):**
+   - Registro estructurado en `.storage/security/contact-observability.json` (y logs estructurados en consola) con `timestamp`, `requestId` (UUID), `validationResult`, `accepted`, `technicalReason`, `providerResult`, y contadores agregados (`legitimateRequests`, `blockedRequests`, `deliveryFailures`, `limitsReached` desglosados por regla).
+   - Prohibido registrar el mensaje completo, tokens de Turnstile, secretos o datos personales en texto plano (IP y email se registran únicamente como hashes truncados).
+7. **Restricciones / Casos Borde (Memoria Viva):**
+   - *Nota: No evaluar `idempotencyKey.trim().length <= 128` sin verificar simultáneamente `idempotencyKey.trim().length > 0`, porque una cadena vacía `""` generaría un hash constante `idem:<sha256("")>` bloqueando envíos subsiguientes sin cabecera `X-Idempotency-Key` como `DUPLICATE_IDEMPOTENCY_KEY`. En su lugar, exigir `length > 0 && length <= 128`.*
+
+
+
