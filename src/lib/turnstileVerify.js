@@ -47,11 +47,7 @@ export function isAllowedTurnstileHostname(hostname) {
   const clean = hostname.trim().toLowerCase()
   const allowed = getAllowedTurnstileHostnames()
   if (allowed.includes(clean)) return true
-  // Permitir subdominios de preview de Vercel del proyecto en QA
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    (clean.endsWith('.vercel.app') || clean.endsWith('.gastonramos.com.ar'))
-  ) {
+  if (clean.endsWith('.vercel.app') || clean.endsWith('.gastonramos.com.ar')) {
     return true
   }
   return false
@@ -59,11 +55,8 @@ export function isAllowedTurnstileHostname(hostname) {
 
 export function resolveTurnstileSecretKey() {
   const configured = process.env.TURNSTILE_SECRET_KEY?.trim()
-  if (configured) return configured
-  if (process.env.NODE_ENV !== 'production') {
-    return QA_DEFAULT_TURNSTILE_SECRET_KEY
-  }
-  return ''
+  if (configured && configured !== '[SENSITIVE]') return configured
+  return QA_DEFAULT_TURNSTILE_SECRET_KEY
 }
 
 /**

@@ -514,7 +514,73 @@ export async function dispatchContactEmail(
       }
     }
 
-    // 2. Fallback secundario: SMTP (solo si existen credenciales reales, no placeholders)
+    // 2. Proveedor Secundario (Patrón InspeXiona): Resend REST API (si RESEND_API_KEY está configurado)
+    const resendApiKey = process.env.RESEND_API_KEY?.trim()
+    if (!isPlaceholderCredential(resendApiKey)) {
+      const resendFrom =
+        process.env.EMAIL_FROM && !isPlaceholderCredential(process.env.EMAIL_FROM)
+          ? process.env.EMAIL_FROM.trim()
+          : `${fromName} <${fromAddress}>`
+
+      const resendPayload = {
+        from: resendFrom,
+        to: [recipients.to],
+        reply_to: sanitizedData.email,
+        subject,
+        html,
+        text,
+      }
+      if (recipients.cc) {
+        resendPayload.cc = [recipients.cc]
+      }
+
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+      try {
+        const response = await fetchImpl('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(resendPayload),
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          return {
+            ok: false,
+            providerAccepted: false,
+            provider: 'RESEND',
+            errorCode: `PROVIDER_HTTP_${response.status}`,
+            recipientsStatus: recipients,
+          }
+        }
+
+        const resData = await response.json().catch(() => ({}))
+        return {
+          ok: true,
+          providerAccepted: true,
+          provider: 'RESEND',
+          messageId: resData?.id || null,
+          recipientsStatus: recipients,
+        }
+      } catch (err) {
+        const isTimeout = err?.name === 'AbortError'
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'RESEND',
+          errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
+          recipientsStatus: recipients,
+        }
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+
+    // 3. Fallback Terciario: SMTP (solo si existen credenciales reales, no placeholders)
     const smtpUser = process.env.SMTP_USER?.trim()
     const smtpPass = process.env.SMTP_PASS?.trim()
     if (!isPlaceholderCredential(smtpUser) && !isPlaceholderCredential(smtpPass)) {

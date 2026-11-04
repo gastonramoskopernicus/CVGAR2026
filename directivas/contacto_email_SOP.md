@@ -85,6 +85,10 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - Prohibido registrar el mensaje completo, tokens de Turnstile, secretos o datos personales en texto plano (IP y email se registran únicamente como hashes truncados).
 7. **Restricciones / Casos Borde (Memoria Viva):**
    - *Nota: No evaluar `idempotencyKey.trim().length <= 128` sin verificar simultáneamente `idempotencyKey.trim().length > 0`, porque una cadena vacía `""` generaría un hash constante `idem:<sha256("")>` bloqueando envíos subsiguientes sin cabecera `X-Idempotency-Key` como `DUPLICATE_IDEMPOTENCY_KEY`. En su lugar, exigir `length > 0 && length <= 128`.*
+   - *Nota: En Vercel, tanto los entornos Preview como Production compilan con `process.env.NODE_ENV === 'production'`. No condicionar el fallback de clave de Turnstile a `process.env.NODE_ENV !== 'production'`, porque si `NEXT_PUBLIC_TURNSTILE_SITE_KEY` o `TURNSTILE_SECRET_KEY` no están cargadas aún en Vercel, `TurnstileWidget` devuelve `null` y bloquea el envío en cliente y servidor (`TURNSTILE_SECRET_NOT_CONFIGURED`).*
+   - *Nota: En Vercel Serverless (`AWS Lambda`), `process.cwd()` (`/var/task`) es de solo lectura (`EROFS`). Cuando `process.env.VERCEL` está activo, los almacenes en disco de rate limiting y observabilidad deben escribir en `path.join(os.tmpdir(), 'gar-contact-security')` (`/tmp/gar-contact-security`).*
+   - *Nota: No copiar secretos productivos desde otros proyectos (`InspeXiona`). Las credenciales del proveedor de correo (`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_EMAIL_API_TOKEN` + `CLOUDFLARE_EMAIL_FROM`, o `RESEND_API_KEY` + `EMAIL_FROM`, o `SMTP_USER` + `SMTP_PASS`) deben ser cargadas explícitamente en el proyecto Vercel `gaston-portfolio`.*
+
 
 
 

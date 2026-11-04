@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 
 /**
@@ -16,7 +17,9 @@ import path from 'path'
  * - Minimización de PII (hashes SHA-256 truncados con sal de aplicación)
  */
 
-const STORAGE_DIR = path.join(process.cwd(), '.storage', 'security')
+const STORAGE_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'gar-contact-security')
+  : path.join(process.cwd(), '.storage', 'security')
 const OBSERVABILITY_FILE = path.join(STORAGE_DIR, 'contact-observability.json')
 const MAX_RECENT_EVENTS = 200
 

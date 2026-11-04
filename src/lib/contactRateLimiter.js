@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 
 /**
@@ -9,12 +10,13 @@ import path from 'path'
  * Arquitectura de almacenamiento de dos niveles (sin activar servicios pagos no autorizados):
  * 1. Distribuido en nube (Redis / Upstash REST): Se activa automáticamente cuando
  *    se configuran `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
- * 2. Almacenamiento persistente compartido en disco (`.storage/security/contact-rate-limits.json`):
- *    Respaldo determinista con escritura atómica (write-temp + rename) que sobrevive
- *    reinicios de proceso y comparte estado entre workers locales sin depender solo de RAM.
+ * 2. Almacenamiento persistente compartido en disco (`/tmp/gar-contact-security` en Vercel Serverless
+ *    o `.storage/security/` en nodos dedicados): Respaldo determinista con escritura atómica.
  */
 
-const STORAGE_DIR = path.join(process.cwd(), '.storage', 'security')
+const STORAGE_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'gar-contact-security')
+  : path.join(process.cwd(), '.storage', 'security')
 const RATE_LIMIT_FILE = path.join(STORAGE_DIR, 'contact-rate-limits.json')
 
 export function getRateLimitConfig() {

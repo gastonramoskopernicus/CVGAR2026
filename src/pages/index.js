@@ -132,9 +132,10 @@ export default function Home() {
               <div className={styles.imageWrapper}>
                 <div className={styles.imageBackground}>
                   <Image
-                    src="/FotoGAR-nobg.webp"
+                    src="/FotoGAR-hero-v3.webp"
                     alt="Gastón Alejandro Ramos"
                     fill
+                    quality={95}
                     sizes="(max-width: 480px) 320px, (max-width: 768px) 400px, (max-width: 1024px) 46vw, 500px"
                     className={styles.heroImage}
                     priority

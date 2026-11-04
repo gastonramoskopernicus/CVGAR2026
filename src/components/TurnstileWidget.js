@@ -19,8 +19,10 @@ export default function TurnstileWidget({
   const widgetIdRef = useRef(null)
 
   const siteKey =
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
-    (process.env.NODE_ENV !== 'production' ? QA_DEFAULT_SITE_KEY : '')
+    (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY &&
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== '[SENSITIVE]'
+      ? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY.trim()
+      : '') || QA_DEFAULT_SITE_KEY
 
   const renderWidget = () => {
     if (typeof window === 'undefined' || !window.turnstile || !containerRef.current || !siteKey) {

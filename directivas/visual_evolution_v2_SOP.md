@@ -90,12 +90,12 @@ Evolucionar la identidad visual de `gastonramos.com.ar` hacia el sistema de dise
 ---
 
 ## 11. Corrección Quirúrgica del Hombro en Fotografía del Hero y Despliegue Autorizado a Producción
-1. **Diagnóstico del Defecto Visual:**
-   - En `scripts/process_hero_portrait.py`, el uso de `rembg.remove(..., alpha_matting=True, alpha_matting_erode_size=8)` generó un borde escalonado/pixelado (bloques de ~8 px) sobre el contorno del hombro izquierdo de la imagen (`public/FotoGAR-nobg.webp` y `public/FotoGAR-nobg.png`), donde el saco oscuro se funde con el fondo oscuro del estudio en `public/FotoGAR.jpeg`.
-2. **Regla de Corrección Quirúrgica:**
-   - Partir del archivo original `public/FotoGAR.jpeg` (1080×1600) y del canal alfa actual de `public/FotoGAR-nobg.png`.
-   - Preservar intactos el rostro, expresión, cabeza, barba, vestimenta y el lado derecho de la imagen.
-   - En la región del hombro izquierdo de la imagen (`x` entre `0` y el cuello/solapa izquierda, `y` en la franja del contorno del hombro), reconstruir el canal alfa mediante una curva suave sub-píxel (spline / interpolación polinómica ajustada al borde real del saco en `FotoGAR.jpeg` con transición anti-aliasing gaussiana de 1.5 px), eliminando por completo los escalones dentados y cualquier halo, y tomando los píxeles RGB directamente de `public/FotoGAR.jpeg`.
-3. **Promoción y Despliegue a Producción (Expresamente Autorizado):**
-   - Una vez verificado visualmente el recorte en `.tmp/` y compilado el proyecto (`npm run build`), realizar merge fast-forward/clean de `feature/gr-visual-evolution-v2` hacia `main` y publicar en producción (`https://gastonramos.com.ar/`), verificando la respuesta HTTP 200 de todas las rutas públicas y la protección de `/aplicaciones` y `/showcase`.
+1. **Diagnóstico de Causa Raíz del Defecto Visual:**
+   - **Causa 1 (`pymatting` en `rembg(alpha_matting=True)`):** El uso inicial de `alpha_matting=True` con `alpha_matting_erode_size=8` introdujo dos artefactos: (a) bloques escalonados de `8×8 px` en **ambos** hombros (tanto el hombro visible a la izquierda de la imagen `x=0..322` como el hombro anatómico izquierdo de Gastón visible a la derecha `x=646..1023`), y (b) alteración tonal del canal RGB del saco oscuro (aclarando el gris del saco).
+   - **Causa 2 (Banda tonal al copiar RGB parcial):** Al reemplazar previamente solo una franja de `20 px` con el RGB original de `FotoGAR.jpeg` sobre el hombro izquierdo sin restaurar el RGB original en el resto del saco, quedaba una banda oscura diagonal de `20 px` respecto al interior alterado por `pymatting`.
+   - **Causa 3 (Caché del navegador y compresión `q=75` de `<Image>`):** Al mantener la misma ruta `/FotoGAR-nobg.webp`, el navegador reutilizaba la versión en caché con `q=75`.
+2. **Solución Definitiva (`scripts/process_hero_portrait.py` y `src/pages/index.js`):**
+   - Utilizar el **100% de los píxeles RGB originales** de `public/FotoGAR.jpeg` en toda la figura (eliminando toda banda tonal interna y preservando la textura real del saco) con descontaminación óptica únicamente en píxeles semitransparentes del borde (`alpha < 245`).
+   - Reconstruir el canal alfa sobre la máscara U2Net limpia (`alpha_matting=False`) aplicando suavizado gaussiano $C^2$ y distancia euclidiana perpendicular (`dist_perp = (y - smooth_y) / sqrt(1 + (dy/dx)^2)`) en **ambos hombros y caída de manga exterior**.
+   - Publicar el recurso versionado `/FotoGAR-hero-v3.webp` con `quality={95}` en `src/pages/index.js` para invalidar cualquier caché de navegador o CDN.
 
