@@ -15,7 +15,8 @@ export const ecosystemEntities = [
     // Texto existente y verificado en el sitio actual (Footer / About)
     description:
       'Asesoramiento y acompañamiento a compañías de seguros y entidades financieras de la región en la transformación y optimización de sus procesos de negocio.',
-    url: 'https://kopernicus.com.ar',
+    url: 'https://kopernicus.tech/',
+    logo: '/images/brands/kopernicus-dark.png',
     published: true,
   },
   {
@@ -25,7 +26,8 @@ export const ecosystemEntities = [
     // Texto existente y verificado en el sitio actual (About)
     description:
       'Firma de consultoría orientada a brindar servicios a empresas en la optimización de sus procesos, evolución de modelos de negocio y adopción de tecnología.',
-    url: null,
+    url: 'https://www.kpstech.com.ar/',
+    logo: '/images/brands/kpstech-blanco.png',
     published: true,
   },
   {

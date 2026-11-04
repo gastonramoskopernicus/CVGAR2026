@@ -16,8 +16,9 @@ export default function GARIcon({
   size = 28,
   className = '',
 }) {
-  const primary = '#f5b727'
-  const secondary = '#c88a28'
+  const primary = 'var(--gar-icon-primary, #f5b727)'
+  const secondary = 'var(--gar-icon-secondary, #c88a28)'
+  const surface = 'var(--gar-icon-surface, #0d0e11)'
 
   const renderGlyph = () => {
     switch (name) {
@@ -363,10 +364,10 @@ export default function GARIcon({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            {/* 4 Nodos de las marcas del ecosistema (Kopernicus, InspeXiona, TechInsurance, KPS) */}
-            <rect x="4.5" y="4.5" width="4.5" height="4.5" rx="1.2" stroke={primary} strokeWidth="1.65" fill="#0d0e11" />
-            <rect x="23" y="4.5" width="4.5" height="4.5" rx="1.2" stroke={primary} strokeWidth="1.65" fill="#0d0e11" />
-            <rect x="4.5" y="23" width="4.5" height="4.5" rx="1.2" stroke={primary} strokeWidth="1.65" fill="#0d0e11" />
+            {/* 4 Nodos de las marcas del ecosistema (Kopernicus, InspeXiona, TechInsurance, KPS Tech) */}
+            <rect x="4.5" y="4.5" width="4.5" height="4.5" rx="1.2" stroke={primary} strokeWidth="1.65" fill={surface} />
+            <rect x="23" y="4.5" width="4.5" height="4.5" rx="1.2" stroke={primary} strokeWidth="1.65" fill={surface} />
+            <rect x="4.5" y="23" width="4.5" height="4.5" rx="1.2" stroke={primary} strokeWidth="1.65" fill={surface} />
             <circle cx="25.25" cy="25.25" r="2.25" fill={primary} />
           </>
         )
@@ -387,3 +388,4 @@ export default function GARIcon({
     </svg>
   )
 }
+

@@ -48,9 +48,14 @@
   flex-shrink: 0;
 }
 
-.hubCard:hover .hubIcon {
+.hubCard:hover .hubIcon,
+.hubCard:focus-visible .hubIcon {
   background: var(--accent-yellow);
   color: var(--text-on-light);
+  border-color: var(--accent-yellow);
+  --gar-icon-primary: #121316;
+  --gar-icon-secondary: #2a2d35;
+  --gar-icon-surface: #f5b727;
 }
 
 .hubIndex {

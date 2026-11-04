@@ -34,3 +34,6 @@ next-env.d.ts
 
 # agent temporary workspace
 /.tmp/
+
+# private server-side showcase storage
+/.storage/

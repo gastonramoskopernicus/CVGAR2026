@@ -163,9 +163,31 @@
 .role {
   font-size: clamp(1.35rem, 2.2vw, 1.85rem);
   font-weight: 800;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.55rem;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+}
+
+.expIdentity {
+  display: flex;
+  flex-direction: column;
+}
+
+.companyRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.companyLogo {
+  height: 26px;
+  max-width: 115px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  opacity: 0.92;
+  flex-shrink: 0;
 }
 
 .company {

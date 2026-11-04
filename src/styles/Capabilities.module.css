@@ -126,9 +126,14 @@
   height: 26px;
 }
 
-.card:hover .cardIcon {
+.card:hover .cardIcon,
+.card:focus-within .cardIcon {
   background: var(--accent-yellow);
   color: var(--text-on-light);
+  border-color: var(--accent-yellow);
+  --gar-icon-primary: #121316;
+  --gar-icon-secondary: #2a2d35;
+  --gar-icon-surface: #f5b727;
 }
 
 .cardIndex {

@@ -49,6 +49,17 @@ export default function EcosystemSection({
                   </span>
                 </div>
 
+                {entity.logo && (
+                  <div className={styles.logoRow}>
+                    <img
+                      src={entity.logo}
+                      alt={entity.name}
+                      className={styles.entityLogo}
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+
                 <h3 className={styles.name}>{entity.name}</h3>
 
                 {entity.description && (

@@ -70,6 +70,17 @@
   background: var(--accent-yellow);
   color: var(--text-on-light);
   border-color: var(--accent-yellow);
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(245, 183, 39, 0.28);
+  position: relative;
+}
+
+.active::before {
+  content: '●';
+  font-size: 0.55rem;
+  margin-right: 0.45rem;
+  vertical-align: middle;
+  color: var(--text-on-light);
 }
 
 .active:hover {

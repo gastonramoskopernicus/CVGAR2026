@@ -1,0 +1,252 @@
+.gateSection {
+  min-height: calc(100svh - 140px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5rem 0;
+}
+
+.gateCard {
+  max-width: 580px;
+  margin: 0 auto;
+  background:
+    radial-gradient(circle at 88% 16%, rgba(245, 183, 39, 0.12) 0%, transparent 55%),
+    var(--bg-secondary, #14161b);
+  border: 1px solid var(--border-accent, rgba(245, 183, 39, 0.4));
+  border-radius: 16px;
+  padding: 3.25rem 2.75rem;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.52);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.gateTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.securityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-yellow, #f5b727);
+  background: rgba(245, 183, 39, 0.08);
+  border: 1px solid rgba(245, 183, 39, 0.28);
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+}
+
+.gateTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.85rem, 3vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary, #f5f2eb);
+  margin: 0;
+}
+
+.gateDescription {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary, #b4b9c4);
+  margin: 0;
+}
+
+.configNotice {
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: rgba(200, 138, 40, 0.12);
+  border: 1px solid rgba(245, 183, 39, 0.35);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+}
+
+.configNotice code {
+  color: var(--accent-yellow);
+  font-size: 0.82rem;
+}
+
+.gateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.primaryAuthBtn {
+  background: var(--accent-yellow, #f5b727);
+  color: var(--text-on-light, #121316);
+  padding: 0.9rem 1.65rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: background-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.primaryAuthBtn:hover:not(:disabled) {
+  background: var(--accent-yellow-hover, #ffc947);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(245, 183, 39, 0.28);
+}
+
+.primaryAuthBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.secondaryAuthBtn {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary, #f5f2eb);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.9rem 1.45rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.22s ease, color 0.22s ease;
+}
+
+.secondaryAuthBtn:hover {
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+}
+
+/* Session Bar for Authenticated Private Pages */
+.sessionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.9rem 1.35rem;
+  margin-bottom: 2.75rem;
+  background: var(--bg-secondary, #14161b);
+  border: 1px solid var(--border-default, #252830);
+  border-radius: 12px;
+}
+
+.sessionLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.verifiedDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+}
+
+.sessionEmail {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sessionBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-yellow);
+  background: rgba(245, 183, 39, 0.1);
+  border: 1px solid rgba(245, 183, 39, 0.28);
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+}
+
+.sessionRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.privateNav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-primary, #0d0e11);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+}
+
+.privateNavLink {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.privateNavLink:hover {
+  color: var(--text-primary);
+}
+
+.privateNavActive {
+  background: var(--accent-yellow);
+  color: var(--text-on-light);
+  font-weight: 800;
+}
+
+.privateNavActive:hover {
+  color: var(--text-on-light);
+}
+
+.logoutBtn {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  padding: 0.45rem 0.95rem;
+  border-radius: 8px;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.logoutBtn:hover {
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+@media (max-width: 640px) {
+  .gateCard {
+    padding: 2.25rem 1.5rem;
+  }
+
+  .sessionBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sessionRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

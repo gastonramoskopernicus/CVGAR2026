@@ -20,7 +20,7 @@ export default function Multimedia() {
   ]
 
   const content = [
-    /* --- Disertaciones y entrevistas verificadas (V2.1) --- */
+    /* --- Disertaciones y entrevistas verificadas (V2.2 con imágenes reales) --- */
     {
       id: 'posgrado-uba-2026',
       title: 'Posgrado en Derecho de Seguros 2026 — Facultad de Derecho, UBA',
@@ -31,6 +31,7 @@ export default function Multimedia() {
       date: '2026 · Facultad de Derecho, UBA',
       type: 'Disertación',
       isVideo: false,
+      image: '/thumbnails/uba-posgrados.jpg',
       iconName: 'consulting',
       link: 'https://www.linkedin.com/in/ramosgaston/',
     },
@@ -43,8 +44,9 @@ export default function Multimedia() {
       date: 'Seminario Latinoamericano',
       type: 'Disertación',
       isVideo: false,
+      image: '/thumbnails/modernizacion-cores-seguros.jpg',
       iconName: 'strategy',
-      link: 'https://www.linkedin.com/in/ramosgaston/',
+      link: 'https://www.linkedin.com/feed/update/urn:li:activity:7469802818644918272/',
     },
     {
       id: 'entrevista-cambiar-industria',
@@ -60,7 +62,20 @@ export default function Multimedia() {
       link: 'https://www.youtube.com/watch?v=PtV9EF4u7T4',
     },
 
-    /* --- Artículos verificados (V2.1) --- */
+    /* --- Artículos verificados (V2.2) --- */
+    {
+      id: 'articulo-equivocarse-menos',
+      title: '¿Qué ocurre con la industria del seguro cuando el mundo empieza a equivocarse menos?',
+      description:
+        'Reflexión estratégica sobre la reducción de la siniestralidad por automatización y sensores predictivos, y el cambio de paradigma en el modelo asegurador.',
+      category: 'LinkedIn',
+      date: 'Artículo de opinión',
+      type: 'Artículo',
+      isVideo: false,
+      image: '/thumbnails/resiliencia-transaccional-space-cloud.jpg',
+      iconName: 'innovation',
+      link: 'https://www.linkedin.com/feed/update/urn:li:activity:7450549959080255488/',
+    },
     {
       id: 'articulo-tesla-seguros',
       title: 'Tesla, seguros y un nuevo ciclo en el desarrollo de software.',
@@ -71,18 +86,6 @@ export default function Multimedia() {
       type: 'Artículo',
       isVideo: false,
       iconName: 'ai',
-      link: 'https://www.linkedin.com/in/ramosgaston/',
-    },
-    {
-      id: 'articulo-equivocarse-menos',
-      title: '¿Qué ocurre con la industria del seguro cuando el mundo empieza a equivocarse menos?',
-      description:
-        'Reflexión estratégica sobre la reducción de la siniestralidad por automatización y sensores predictivos, y el cambio de paradigma en el modelo asegurador.',
-      category: 'LinkedIn',
-      date: 'Artículo de opinión',
-      type: 'Artículo',
-      isVideo: false,
-      iconName: 'innovation',
       link: 'https://www.linkedin.com/in/ramosgaston/',
     },
     {

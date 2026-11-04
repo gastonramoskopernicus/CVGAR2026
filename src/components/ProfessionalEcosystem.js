@@ -29,10 +29,10 @@ const brands = [
   },
   {
     id: 'kps',
-    name: 'KPS',
-    url: 'https://kps.com.ar/',
-    logo: '/images/brands/kps-white.png',
-    alt: 'KPS',
+    name: 'KPS Tech',
+    url: 'https://www.kpstech.com.ar/',
+    logo: '/images/brands/kpstech-blanco.png',
+    alt: 'KPS Tech',
     type: 'image',
   },
 ]
@@ -97,3 +97,4 @@ export default function ProfessionalEcosystem() {
     </section>
   )
 }
+

@@ -25,6 +25,7 @@ export default function About() {
     {
       role: "Socio Director en Kopernicus Tech LATAM - CEO Argentina",
       company: "Kopernicus Tech",
+      logo: "/images/brands/kopernicus-dark.png",
       period: "sept. 2020 - actualidad",
       description: "Socio Director en Kopernicus Tech Latam, donde asesoramos y acompañamos a las principales compañías de seguros y entidades financieras de la región en la transformación y optimización de sus procesos de negocio. Participamos activamente en el diseño y desarrollo de nuevos productos, la modernización y migración de plataformas legacy, la implementación de soluciones core y la definición de estrategias tecnológicas orientadas a generar eficiencia operativa y ventajas competitivas sostenibles.",
       highlights: [
@@ -36,6 +37,7 @@ export default function About() {
     {
       role: "Founder KPS Tech Argentina",
       company: "KPS Tech Argentina",
+      logo: "/images/brands/kpstech-blanco.png",
       period: "dic. 2025 - actualidad",
       description: "Founder de KPS Tech Argentina, una firma de consultoría que nace como un spin-off de Kopernicus Tech, orientada a brindar servicios a empresas con foco en Argentina y la región. Acompañamos organizaciones de múltiples industrias —como manufactura, retail, legales, entre otras— en la optimización de sus procesos, la evolución de sus modelos de negocio y la adopción de tecnología como habilitador estratégico.",
       highlights: [
@@ -47,6 +49,7 @@ export default function About() {
     {
       role: "Digital Leader / Infinity Ambassador",
       company: "InfinityLifeTech",
+      logo: null,
       period: "jul. 2020 - actualidad",
       description: "Colaboración estratégica para posicionar a InfinityLife Tech como una de las mejores plataformas de bienestar y estilo de vida.",
       highlights: [
@@ -58,6 +61,7 @@ export default function About() {
     {
       role: "Socio Gerente",
       company: "Next Step Argentina",
+      logo: "/images/companies/nextstep.svg",
       period: "dic. 2012 - jul. 2020",
       description: "Me desarrollé como gerente en una de las principales consultoras de nicho de seguros en Argentina, colaborando en proyectos de gran relevancia tanto a nivel local como regional.",
       highlights: [
@@ -69,6 +73,7 @@ export default function About() {
     {
       role: "Director de Operaciones",
       company: "Grupo GAMAN",
+      logo: "/images/companies/grupogaman.png",
       period: "dic. 2010 - jul. 2020",
       description: "Colaboré en la creación y evolución de uno de los brokers más importantes de Argentina, participando en el diseño de imagen, la estructuración de operaciones, el desarrollo comercial con terceros y la implementación de herramientas y soluciones de backend.",
       highlights: [
@@ -80,6 +85,7 @@ export default function About() {
     {
       role: "Gerente General",
       company: "Broker Digital de Productores de Seguros S.A",
+      logo: null,
       period: "dic. 2010 - dic. 2014",
       description: "Fui co-founder del primer agregador digital de seguros de Argentina en el año 2010.",
       highlights: [
@@ -90,6 +96,7 @@ export default function About() {
     {
       role: "Profesor Titular",
       company: "Universidad del Salvador",
+      logo: "/images/companies/usal.png",
       period: "mar. 2005 - dic. 2014",
       description: "Profesor titular de la Cátedra Sistemas de Información para las carreras de Administración y Recursos Humanos.",
       highlights: [
@@ -100,6 +107,7 @@ export default function About() {
     {
       role: "Manager IT Practice",
       company: "PriceWaterhouseCoopers - Argentina",
+      logo: "/images/companies/pwc.svg",
       period: "nov. 2006 - dic. 2010",
       description: "Gerente de Consultoría IT, asesorando a altas gerencias y CEOs en la optimización tecnológica para generar ventajas competitivas sostenibles. He trabajado con empresas multinacionales tanto en Argentina como en otros mercados, incluyendo Estados Unidos, México, Paraguay, Uruguay y Brasil, acompañando a las organizaciones en la adopción y aprovechamiento estratégico de IT para potenciar sus operaciones y definir su estrategia corporativa.",
       highlights: [
@@ -111,6 +119,7 @@ export default function About() {
     {
       role: "Software Developer / Project Leader",
       company: "Axoft Argentina",
+      logo: "/images/companies/axoft.png",
       period: "oct. 1998 - nov. 2006",
       description: "Desarrollo en una de las compañías de software más importantes de Argentina, obteniendo know-how profundo en proyectos de gran escala.",
       highlights: [
@@ -194,9 +203,19 @@ export default function About() {
             {timeline.map((item, index) => (
               <div key={index} className={styles.timelineItem}>
                 <div className={styles.expHeader}>
-                  <div>
+                  <div className={styles.expIdentity}>
                     <h3 className={styles.role}>{item.role}</h3>
-                    <span className={styles.company}>{item.company}</span>
+                    <div className={styles.companyRow}>
+                      {item.logo && (
+                        <img
+                          src={item.logo}
+                          alt={item.company}
+                          className={styles.companyLogo}
+                          loading="lazy"
+                        />
+                      )}
+                      <span className={styles.company}>{item.company}</span>
+                    </div>
                   </div>
                   <span className={styles.period}>{item.period}</span>
                 </div>

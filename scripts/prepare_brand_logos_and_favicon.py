@@ -91,3 +91,4 @@ if __name__ == "__main__":
     create_favicon_ico()
     create_kopernicus_dark_logo()
     inspect_techinsurance_and_multimedia()
+
