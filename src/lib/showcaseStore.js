@@ -313,3 +313,4 @@ export function verifySignedFileToken(token, itemId, actorEmail) {
     return false
   }
 }
+

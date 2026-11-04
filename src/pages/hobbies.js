@@ -1,6 +1,7 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildBreadcrumbSchema } from '@/lib/schemaOrg'
 import GARIcon from '@/components/GARIcon'
 import styles from '@/styles/Hobbies.module.css'
 import baseStyles from '@/styles/About.module.css'
@@ -49,10 +50,15 @@ const hubs = [
 export default function Hobbies() {
   return (
     <>
-      <Head>
-        <title>Pasatiempos e Intereses | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Tecnología, deporte de alto rendimiento y liderazgo — los pilares personales que sostienen la visión profesional de Gastón Alejandro Ramos." />
-      </Head>
+      <SEOHead
+        title="Intereses: Tecnología, Deporte y Liderazgo | Gastón Alejandro Ramos"
+        description="Tecnología, deporte de alto rendimiento y liderazgo — los pilares personales que sostienen la visión profesional de Gastón Alejandro Ramos."
+        path="/hobbies"
+        jsonLd={buildBreadcrumbSchema([
+          { name: 'Inicio', path: '/' },
+          { name: 'Intereses', path: '/hobbies' },
+        ])}
+      />
 
       <div className={baseStyles.intro}>
         <div className="container">

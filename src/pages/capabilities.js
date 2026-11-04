@@ -1,5 +1,6 @@
-import Head from 'next/head'
 import Link from 'next/link'
+import SEOHead from '@/components/SEOHead'
+import { buildCapabilitiesSchema } from '@/lib/schemaOrg'
 import GARIcon from '@/components/GARIcon'
 import styles from '@/styles/Capabilities.module.css'
 
@@ -39,9 +40,12 @@ export default function Capabilities() {
 
   return (
     <>
-      <Head>
-        <title>Capacidades | Gastón Alejandro Ramos</title>
-      </Head>
+      <SEOHead
+        title="Capacidades de Consultoría | Gastón Alejandro Ramos"
+        description="Servicios de consultoría estratégica y tecnológica, transformación digital, modernización de sistemas core, inteligencia artificial, automatización y advisory para empresas."
+        path="/capabilities"
+        jsonLd={buildCapabilitiesSchema()}
+      />
 
       <div className={styles.intro}>
         <div className="container">

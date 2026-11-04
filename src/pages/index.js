@@ -1,7 +1,8 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { PERSON_SCHEMA, WEBSITE_SCHEMA } from '@/lib/schemaOrg'
 import GARIcon from '@/components/GARIcon'
 import ProfessionalEcosystem from '@/components/ProfessionalEcosystem'
 import styles from '@/styles/Home.module.css'
@@ -15,9 +16,12 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>Gastón Alejandro Ramos | Asesor en Estrategia y Tecnología para Seguros</title>
-      </Head>
+      <SEOHead
+        title="Gastón Ramos | Consultor en Estrategia y Tecnología"
+        description="Consultoría senior en estrategia, tecnología y transformación digital para empresas de Argentina y Latinoamérica. Conocé la trayectoria de Gastón Ramos."
+        path="/"
+        jsonLd={[PERSON_SCHEMA, WEBSITE_SCHEMA]}
+      />
 
       <section className={styles.heroSection}>
         {/* Ambient radial glow behind the right column */}

@@ -1,6 +1,7 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildBreadcrumbSchema } from '@/lib/schemaOrg'
 import styles from '@/styles/Hobbies.module.css'
 import baseStyles from '@/styles/About.module.css'
 
@@ -14,10 +15,16 @@ const BackIcon = () => (
 export default function LeadershipLanding() {
   return (
     <>
-      <Head>
-        <title>Liderazgo y Mentoría | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Acompañar el crecimiento de otros: liderazgo práctico, formación de equipos y mentoría desde la experiencia directa." />
-      </Head>
+      <SEOHead
+        title="Liderazgo y Mentoría Ejecutiva | Gastón Alejandro Ramos"
+        description="Acompañar el crecimiento de otros: liderazgo práctico, formación de equipos y mentoría ejecutiva desde la experiencia directa."
+        path="/hobbies/leadership"
+        jsonLd={buildBreadcrumbSchema([
+          { name: 'Inicio', path: '/' },
+          { name: 'Intereses', path: '/hobbies' },
+          { name: 'Liderazgo y Mentoría', path: '/hobbies/leadership' },
+        ])}
+      />
 
       <div className={`${baseStyles.intro} ${styles.subHero}`}>
         <div className="container">
@@ -29,7 +36,7 @@ export default function LeadershipLanding() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
-            <h1 className={styles.subTitle}>Liderazgo<br />y Mentoría</h1>
+            <h1 className={styles.subTitle}>Liderazgo <br />y Mentoría</h1>
             <p className={styles.subTagline}>Acompañar el crecimiento de otros desde la experiencia directa.</p>
           </motion.div>
         </div>

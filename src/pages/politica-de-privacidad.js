@@ -1,13 +1,19 @@
-import Head from 'next/head'
+import SEOHead from '@/components/SEOHead'
+import { buildBreadcrumbSchema } from '@/lib/schemaOrg'
 import styles from '@/styles/Legal.module.css'
 
 export default function PoliticaDePrivacidad() {
   return (
     <>
-      <Head>
-        <title>Política de Privacidad | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Política de privacidad del sitio web de Gastón Alejandro Ramos." />
-      </Head>
+      <SEOHead
+        title="Política de Privacidad | Gastón Alejandro Ramos"
+        description="Política de privacidad y tratamiento de datos del sitio web oficial de Gastón Alejandro Ramos (gastonramos.com.ar)."
+        path="/politica-de-privacidad"
+        jsonLd={buildBreadcrumbSchema([
+          { name: 'Inicio', path: '/' },
+          { name: 'Política de Privacidad', path: '/politica-de-privacidad' },
+        ])}
+      />
 
       <div className={styles.page}>
         <section className={styles.hero}>

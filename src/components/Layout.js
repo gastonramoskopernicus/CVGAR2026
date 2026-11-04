@@ -8,8 +8,12 @@ const Layout = ({ children }) => {
   return (
     <>
       <Head>
-        <title>Gastón Alejandro Ramos | Insurance Technology & Strategy Advisor</title>
-        <meta name="description" content="Insurance Technology & Strategy Advisor - Helping insurance companies transform through strategy, technology, and innovation." />
+        <title key="title">Gastón Ramos | Consultor en Estrategia y Tecnología</title>
+        <meta
+          key="description"
+          name="description"
+          content="Consultoría senior en estrategia, tecnología y transformación digital para empresas de Argentina y Latinoamérica. Conocé la trayectoria de Gastón Ramos."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="alternate icon" href="/favicon.ico" />

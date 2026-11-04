@@ -1,6 +1,7 @@
-import Head from 'next/head'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildProfilePageSchema } from '@/lib/schemaOrg'
 import styles from '@/styles/About.module.css'
 import ExperienceMap from '../components/ExperienceMap'
 import EcosystemSection from '../components/EcosystemSection'
@@ -138,9 +139,13 @@ export default function About() {
 
   return (
     <>
-      <Head>
-        <title>Sobre Mí | Gastón Alejandro Ramos</title>
-      </Head>
+      <SEOHead
+        title="Perfil y Trayectoria | Gastón Alejandro Ramos — Consultor Senior"
+        description="Conocé la trayectoria profesional, formación académica y experiencia internacional de Gastón Alejandro Ramos en estrategia, tecnología, transformación digital y seguros."
+        path="/about"
+        ogType="profile"
+        jsonLd={buildProfilePageSchema()}
+      />
 
       <div className={styles.intro}>
         <div className="container">

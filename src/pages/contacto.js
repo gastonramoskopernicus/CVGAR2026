@@ -1,7 +1,9 @@
-import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildContactPageSchema } from '@/lib/schemaOrg'
+import { trackLeadConversion, trackMicroConversion } from '@/lib/analytics'
 import styles from '@/styles/Contact.module.css'
 
 const ArrowIcon = () => (
@@ -26,70 +28,138 @@ const FIELDS = {
   mensaje: { label: 'Mensaje', required: true, placeholder: 'Contame en qué puedo ayudarte…' },
 }
 
+const USER_ERROR_MESSAGE =
+  'No pudimos enviar tu mensaje en este momento. Por favor, intentá nuevamente.'
+const USER_SUCCESS_MESSAGE =
+  'Tu mensaje fue enviado correctamente. Gracias por contactarme.'
+
+const INITIAL_VALUES = {
+  nombre: '',
+  email: '',
+  empresa: '',
+  telefono: '',
+  mensaje: '',
+}
+
 function validate(values) {
   const errors = {}
-  if (!values.nombre.trim()) errors.nombre = 'Este campo es requerido.'
+  if (!values.nombre.trim()) {
+    errors.nombre = 'Este campo es requerido.'
+  } else if (values.nombre.trim().length > 120) {
+    errors.nombre = 'Máximo 120 caracteres.'
+  }
+
   if (!values.email.trim()) {
     errors.email = 'Este campo es requerido.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+  } else if (
+    values.email.trim().length > 254 ||
+    /[^\x00-\x7F]/.test(values.email.trim()) ||
+    !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(
+      values.email.trim()
+    )
+  ) {
     errors.email = 'Ingresá un email válido.'
   }
-  if (!values.mensaje.trim()) errors.mensaje = 'Este campo es requerido.'
+
+  if (values.empresa && values.empresa.trim().length > 160) {
+    errors.empresa = 'Máximo 160 caracteres.'
+  }
+
+  if (values.telefono && !/^[0-9+\-() .\s]{0,40}$/.test(values.telefono.trim())) {
+    errors.telefono = 'Ingresá un teléfono válido.'
+  }
+
+  if (!values.mensaje.trim()) {
+    errors.mensaje = 'Este campo es requerido.'
+  } else if (values.mensaje.trim().length > 4000) {
+    errors.mensaje = 'Máximo 4000 caracteres.'
+  }
   return errors
 }
 
 export default function Contacto() {
-  const [values, setValues] = useState({
-    nombre: '', email: '', empresa: '', telefono: '', mensaje: '',
-  })
+  const [values, setValues] = useState(INITIAL_VALUES)
   const [trap, setTrap] = useState('') // honeypot
   const [touched, setTouched] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [globalError, setGlobalError] = useState('')
 
+  // Prevención sincrónica contra doble clic y duplicación de eventos analíticos
+  const isSubmittingRef = useRef(false)
+  const leadTrackedRef = useRef(false)
+
   const errors = validate(values)
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setValues(prev => ({ ...prev, [name]: value }))
+    setValues((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleBlur = (e) => {
-    setTouched(prev => ({ ...prev, [e.target.name]: true }))
+    setTouched((prev) => ({ ...prev, [e.target.name]: true }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isSubmittingRef.current || submitting) return
+
     setTouched({ nombre: true, email: true, mensaje: true })
     setGlobalError('')
 
     const errs = validate(values)
     if (Object.keys(errs).length > 0) return
 
+    isSubmittingRef.current = true
     setSubmitting(true)
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000)
+
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...values, _trap: trap }),
+        signal: controller.signal,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok || !data?.ok || !data?.providerAccepted) {
+        throw new Error(USER_ERROR_MESSAGE)
+      }
+
+      // Disparo único de conversión generate_lead (sin datos personales / PII)
+      if (!leadTrackedRef.current) {
+        leadTrackedRef.current = true
+        trackLeadConversion({
+          type: 'generate_lead',
+          sourcePage: '/contacto',
+        })
+      }
+
+      // Limpiar formulario únicamente después de recibir confirmación de aceptación del proveedor
+      setValues(INITIAL_VALUES)
+      setTouched({})
       setSuccess(true)
-    } catch (err) {
-      setGlobalError(err.message)
+    } catch {
+      setGlobalError(USER_ERROR_MESSAGE)
     } finally {
+      clearTimeout(timer)
+      isSubmittingRef.current = false
       setSubmitting(false)
     }
   }
 
   return (
     <>
-      <Head>
-        <title>Contacto | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Iniciá una conversación: consultas sobre estrategia, tecnología y seguros en LATAM." />
-      </Head>
+      <SEOHead
+        title="Contacto y Consultoría | Gastón Alejandro Ramos"
+        description="Iniciá una conversación con Gastón Alejandro Ramos: asesoramiento senior en estrategia, tecnología, transformación digital y seguros en Argentina y LATAM."
+        path="/contacto"
+        jsonLd={buildContactPageSchema()}
+      />
 
       <div className={styles.page}>
         {/* Hero */}
@@ -109,13 +179,33 @@ export default function Contacto() {
               <div className={styles.heroRight}>
                 <div className={styles.contactItem}>
                   <span className={styles.contactLabel}>Email</span>
-                  <a href="mailto:ramos.gaston@kopernicus.tech" className={styles.contactValue}>
+                  <a
+                    href="mailto:ramos.gaston@kopernicus.tech"
+                    className={styles.contactValue}
+                    onClick={() =>
+                      trackMicroConversion('click_email', {
+                        label: 'contacto_hero_email',
+                        destination: 'mailto:ramos.gaston@kopernicus.tech',
+                      })
+                    }
+                  >
                     ramos.gaston@kopernicus.tech
                   </a>
                 </div>
                 <div className={styles.contactItem}>
                   <span className={styles.contactLabel}>LinkedIn</span>
-                  <a href="https://www.linkedin.com/in/ramosgaston/" target="_blank" rel="noopener noreferrer" className={styles.contactValue}>
+                  <a
+                    href="https://www.linkedin.com/in/ramosgaston/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.contactValue}
+                    onClick={() =>
+                      trackMicroConversion('click_linkedin', {
+                        label: 'contacto_hero_linkedin',
+                        destination: 'https://www.linkedin.com/in/ramosgaston/',
+                      })
+                    }
+                  >
                     linkedin.com/in/ramosgaston
                   </a>
                 </div>
@@ -148,9 +238,8 @@ export default function Contacto() {
               {/* Form or Success */}
               <div>
                 {success ? (
-                  <div className={styles.successState}>
-                    <p className={styles.successTitle}>Mensaje recibido.</p>
-                    <p className={styles.successText}>Gracias, {values.nombre.split(' ')[0]}. Te contacto a la brevedad.</p>
+                  <div className={styles.successState} role="status" aria-live="polite">
+                    <p className={styles.successTitle}>{USER_SUCCESS_MESSAGE}</p>
                     <Link href="/" className={styles.backBtn}>
                       <BackArrowIcon />
                       Volver al inicio
@@ -180,11 +269,13 @@ export default function Contacto() {
                           name="nombre"
                           type="text"
                           autoComplete="name"
+                          maxLength={120}
                           placeholder="Tu nombre"
                           className={`${styles.input} ${touched.nombre && errors.nombre ? styles.inputError : ''}`}
                           value={values.nombre}
                           onChange={handleChange}
                           onBlur={handleBlur}
+                          disabled={submitting}
                         />
                         {touched.nombre && errors.nombre && (
                           <span className={styles.errorMsg}>{errors.nombre}</span>
@@ -200,11 +291,13 @@ export default function Contacto() {
                           name="email"
                           type="email"
                           autoComplete="email"
+                          maxLength={254}
                           placeholder="tu@email.com"
                           className={`${styles.input} ${touched.email && errors.email ? styles.inputError : ''}`}
                           value={values.email}
                           onChange={handleChange}
                           onBlur={handleBlur}
+                          disabled={submitting}
                         />
                         {touched.email && errors.email && (
                           <span className={styles.errorMsg}>{errors.email}</span>
@@ -221,10 +314,12 @@ export default function Contacto() {
                           name="empresa"
                           type="text"
                           autoComplete="organization"
+                          maxLength={160}
                           placeholder="Opcional"
                           className={styles.input}
                           value={values.empresa}
                           onChange={handleChange}
+                          disabled={submitting}
                         />
                       </div>
                       <div className={styles.field}>
@@ -234,10 +329,12 @@ export default function Contacto() {
                           name="telefono"
                           type="tel"
                           autoComplete="tel"
+                          maxLength={40}
                           placeholder="Opcional"
                           className={styles.input}
                           value={values.telefono}
                           onChange={handleChange}
+                          disabled={submitting}
                         />
                       </div>
                     </div>
@@ -250,12 +347,14 @@ export default function Contacto() {
                       <textarea
                         id="mensaje"
                         name="mensaje"
+                        maxLength={4000}
                         placeholder="Contame en qué puedo ayudarte…"
                         className={`${styles.textarea} ${touched.mensaje && errors.mensaje ? styles.inputError : ''}`}
                         value={values.mensaje}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         rows={6}
+                        disabled={submitting}
                       />
                       {touched.mensaje && errors.mensaje && (
                         <span className={styles.errorMsg}>{errors.mensaje}</span>
@@ -272,7 +371,7 @@ export default function Contacto() {
                         {submitting ? 'Enviando…' : <>Enviar mensaje <ArrowIcon /></>}
                       </button>
                       {globalError && (
-                        <span className={styles.globalError}>{globalError}</span>
+                        <span className={styles.globalError} role="alert">{globalError}</span>
                       )}
                     </div>
                   </form>

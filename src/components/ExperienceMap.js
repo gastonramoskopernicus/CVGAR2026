@@ -28,17 +28,22 @@ const ExperienceMap = () => {
           viewBox="0 0 2000 1001"
           className={styles.worldMap}
           xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="Mapa de experiencia internacional en Argentina, Chile, Uruguay, Paraguay, Ecuador, México, Estados Unidos, España, Brasil e Italia"
         >
-          {worldData.map((country) => (
-            <path
-              key={country.id}
-              id={country.id}
-              d={country.d}
-              data-highlighted={highlightedCountries.includes(country.id)}
-            >
-              <title>{countryTranslations[country.name] || country.name}</title>
-            </path>
-          ))}
+          {worldData.map((country) => {
+            const isHighlighted = highlightedCountries.includes(country.id);
+            const label = countryTranslations[country.name] || country.name;
+            return (
+              <path
+                key={country.id}
+                id={country.id}
+                d={country.d}
+                data-highlighted={isHighlighted}
+                aria-label={isHighlighted ? label : undefined}
+              />
+            );
+          })}
         </svg>
       </div>
       <div className={styles.countryLegend}>

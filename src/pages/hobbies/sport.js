@@ -1,8 +1,9 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildBreadcrumbSchema } from '@/lib/schemaOrg'
 import { promises as fs } from 'fs'
 import path from 'path'
 import styles from '@/styles/Hobbies.module.css'
@@ -36,10 +37,16 @@ export default function SportLanding({ photos }) {
 
   return (
     <>
-      <Head>
-        <title>Deporte | Gastón Alejandro Ramos</title>
-        <meta name="description" content="9 medios Ironman, 6 Ironman, Ultraman Brasil UB515 — el deporte de resistencia como disciplina de vida." />
-      </Head>
+      <SEOHead
+        title="Deporte y Alto Rendimiento | Gastón Alejandro Ramos"
+        description="9 medios Ironman, 6 Ironman, Ultraman Brasil UB515 — el deporte de resistencia como disciplina de foco, resiliencia y ejecución de largo plazo."
+        path="/hobbies/sport"
+        jsonLd={buildBreadcrumbSchema([
+          { name: 'Inicio', path: '/' },
+          { name: 'Intereses', path: '/hobbies' },
+          { name: 'Deporte', path: '/hobbies/sport' },
+        ])}
+      />
 
       <div className={`${baseStyles.intro} ${styles.subHero}`}>
         <div className="container">

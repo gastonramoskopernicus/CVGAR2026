@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /aplicaciones
+Disallow: /showcase
+Disallow: /api/
+
+Sitemap: https://gastonramos.com.ar/sitemap.xml
+

@@ -71,3 +71,4 @@ export async function requireApiAuth(req, res) {
 
   return auth.user
 }
+

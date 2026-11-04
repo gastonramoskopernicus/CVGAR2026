@@ -1,13 +1,19 @@
-import Head from 'next/head'
+import SEOHead from '@/components/SEOHead'
+import { buildBreadcrumbSchema } from '@/lib/schemaOrg'
 import styles from '@/styles/Legal.module.css'
 
 export default function TerminosYCondiciones() {
   return (
     <>
-      <Head>
-        <title>Términos y Condiciones | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Términos y condiciones de uso del sitio web de Gastón Alejandro Ramos." />
-      </Head>
+      <SEOHead
+        title="Términos y Condiciones | Gastón Alejandro Ramos"
+        description="Términos y condiciones de uso del sitio web profesional de Gastón Alejandro Ramos (gastonramos.com.ar)."
+        path="/terminos-y-condiciones"
+        jsonLd={buildBreadcrumbSchema([
+          { name: 'Inicio', path: '/' },
+          { name: 'Términos y Condiciones', path: '/terminos-y-condiciones' },
+        ])}
+      />
 
       <div className={styles.page}>
         <section className={styles.hero}>

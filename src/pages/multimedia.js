@@ -1,6 +1,7 @@
-import Head from 'next/head'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildMultimediaSchema } from '@/lib/schemaOrg'
 import GARIcon from '@/components/GARIcon'
 import Monogram from '@/components/Monogram'
 import styles from '@/styles/Articles.module.css'
@@ -207,9 +208,12 @@ export default function Multimedia() {
 
   return (
     <>
-      <Head>
-        <title>Multimedia y Contenidos | Gastón Alejandro Ramos</title>
-      </Head>
+      <SEOHead
+        title="Multimedia, Artículos y Disertaciones | Gastón Alejandro Ramos"
+        description="Conferencias, entrevistas, videos y artículos de opinión de Gastón Alejandro Ramos sobre estrategia empresarial, tecnología, transformación digital, IA y seguros."
+        path="/multimedia"
+        jsonLd={buildMultimediaSchema(content)}
+      />
 
       <div className={styles.intro}>
         <div className="container">

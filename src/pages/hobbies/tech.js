@@ -1,6 +1,7 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import SEOHead from '@/components/SEOHead'
+import { buildBreadcrumbSchema } from '@/lib/schemaOrg'
 import styles from '@/styles/Hobbies.module.css'
 import baseStyles from '@/styles/About.module.css'
 
@@ -14,10 +15,16 @@ const BackIcon = () => (
 export default function TechLanding() {
   return (
     <>
-      <Head>
-        <title>Tecnología e Innovación | Gastón Alejandro Ramos</title>
-        <meta name="description" content="Perspectiva estratégica sobre transformación digital, innovación y evolución de organizaciones a través de la tecnología." />
-      </Head>
+      <SEOHead
+        title="Tecnología e Innovación Empresarial | Gastón Alejandro Ramos"
+        description="Perspectiva estratégica sobre transformación digital, innovación y evolución de organizaciones a través de la tecnología."
+        path="/hobbies/tech"
+        jsonLd={buildBreadcrumbSchema([
+          { name: 'Inicio', path: '/' },
+          { name: 'Intereses', path: '/hobbies' },
+          { name: 'Tecnología e Innovación', path: '/hobbies/tech' },
+        ])}
+      />
 
       <div className={`${baseStyles.intro} ${styles.subHero}`}>
         <div className="container">
@@ -29,7 +36,7 @@ export default function TechLanding() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
-            <h1 className={styles.subTitle}>Tecnología<br />e Innovación</h1>
+            <h1 className={styles.subTitle}>Tecnología <br />e Innovación</h1>
             <p className={styles.subTagline}>Perspectiva estratégica sobre cómo la tecnología transforma organizaciones.</p>
           </motion.div>
         </div>
