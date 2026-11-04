@@ -13,9 +13,9 @@ export const PERSON_SCHEMA = {
   '@id': `${SITE_URL}/#person`,
   name: 'Gastón Alejandro Ramos',
   alternateName: 'Gastón Ramos',
-  jobTitle: 'Consultor Senior en Estrategia, Tecnología y Transformación Digital',
+  jobTitle: 'Consultor Senior en Estrategia, Tecnología y Transformación de Negocios',
   description:
-    'Consultor independiente en estrategia empresarial, tecnología, transformación digital e innovación con más de 30 años de trayectoria en Argentina y Latinoamérica, y especialización destacada en seguros y servicios financieros.',
+    'Consultor Senior en Estrategia, Tecnología y Transformación de Negocios con más de 30 años de trayectoria acompañando a empresas medianas, grandes organizaciones y compañías de seguros y servicios financieros en Argentina y Latinoamérica.',
   url: SITE_URL,
   image: `${SITE_URL}/FotoGAR.jpeg`,
   address: {
@@ -115,34 +115,34 @@ export function buildProfilePageSchema() {
 export function buildCapabilitiesSchema() {
   const services = [
     {
-      name: 'Estrategia Empresarial y Tecnológica',
+      name: 'Estrategia y Transformación del Negocio',
       description:
-        'Definición de hojas de ruta tecnológicas conectadas con los objetivos estratégicos del negocio, priorización de inversiones y arquitectura moderna.',
+        'Definición de hojas de ruta, evolución de modelos operativos, priorización de inversiones y alineación entre objetivos empresariales y tecnología.',
     },
     {
-      name: 'Transformación Digital y Organizacional',
+      name: 'Optimización y Digitalización de Procesos',
       description:
-        'Evolución integral de modelos operativos, rediseño de procesos punta a punta y adopción sostenible de tecnología en empresas de Argentina y Latinoamérica.',
+        'Diagnóstico de operaciones, simplificación de circuitos, automatización, reducción de tareas manuales y mejora de productividad.',
     },
     {
-      name: 'Arquitectura y Modernización de Core Systems',
+      name: 'Estrategia y Arquitectura Tecnológica',
       description:
-        'Consultoría senior en evaluación, selección (RFI/RFP), migración e integración de plataformas críticas y sistemas core aseguradores y empresariales.',
+        'Modernización de plataformas, integración de sistemas, evaluación y selección de software, proveedores y soluciones empresariales.',
     },
     {
-      name: 'Inteligencia Artificial y Automatización Aplicada',
+      name: 'Innovación, Productos y Canales',
       description:
-        'Implementación de inteligencia artificial, automatización inteligente de procesos y eficiencia operativa orientada a resultados medibles.',
+        'Desarrollo de nuevas propuestas de valor, productos digitales, modelos de distribución, ecosistemas comerciales y oportunidades de crecimiento.',
     },
     {
-      name: 'Innovación, Canales Digitales y Ecosistemas B2B2C',
+      name: 'Inteligencia Artificial y Automatización',
       description:
-        'Diseño de nuevos modelos de negocio, productos digitales y canales de distribución integrados mediante arquitecturas API-First.',
+        'Identificación de casos de uso, evaluación de viabilidad, automatización inteligente y adopción de inteligencia artificial orientada a resultados.',
     },
     {
-      name: 'Advisory Tecnológico para CEOs, Directores y CIOs',
+      name: 'Especialización en Seguros y Finanzas',
       description:
-        'Acompañamiento ejecutivo independiente para directorios y alta gerencia en decisiones tecnológicas críticas, gobierno IT y selección de proveedores.',
+        'Transformación aseguradora, evolución de sistemas core, distribución digital, nuevos productos, eficiencia operativa e integración de ecosistemas.',
     },
   ]
 
@@ -151,7 +151,7 @@ export function buildCapabilitiesSchema() {
       '@context': 'https://schema.org',
       '@type': 'Service',
       '@id': `${SITE_URL}/capabilities#service`,
-      name: 'Consultoría Senior en Estrategia, Tecnología, Transformación Digital y Seguros',
+      name: 'Consultoría Senior en Estrategia, Tecnología, Transformación de Negocios y Seguros',
       provider: {
         '@id': `${SITE_URL}/#person`,
       },

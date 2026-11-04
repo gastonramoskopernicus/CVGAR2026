@@ -1,24 +1,108 @@
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import SEOHead from '@/components/SEOHead'
 import { PERSON_SCHEMA, WEBSITE_SCHEMA } from '@/lib/schemaOrg'
 import GARIcon from '@/components/GARIcon'
 import ProfessionalEcosystem from '@/components/ProfessionalEcosystem'
 import styles from '@/styles/Home.module.css'
 
+const HERO_MESSAGES = [
+  {
+    id: 'estrategia-transformacion',
+    label: 'Estrategia y transformación',
+    categories: ['ESTRATEGIA', 'TECNOLOGÍA', 'TRANSFORMACIÓN'],
+    titlePrefix: 'Transformando la Estrategia en ',
+    titleHighlight: 'Realidad',
+    titleSuffix: '.',
+    description:
+      'Acompaño a empresas en la evolución de sus negocios, conectando estrategia, procesos y tecnología para generar resultados concretos.',
+  },
+  {
+    id: 'eficiencia-operativa',
+    label: 'Eficiencia operativa',
+    categories: ['EFICIENCIA', 'PROCESOS', 'DIGITALIZACIÓN'],
+    titlePrefix: 'Haciendo que la Tecnología genere ',
+    titleHighlight: 'Valor',
+    titleSuffix: '.',
+    description:
+      'Ayudo a organizaciones a simplificar operaciones, optimizar procesos e incorporar soluciones digitales que mejoran su competitividad.',
+  },
+  {
+    id: 'innovacion-crecimiento',
+    label: 'Innovación y crecimiento',
+    categories: ['INNOVACIÓN', 'CRECIMIENTO', 'NUEVOS NEGOCIOS'],
+    titlePrefix: 'Creando Nuevas Oportunidades de ',
+    titleHighlight: 'Negocio',
+    titleSuffix: '.',
+    description:
+      'Diseño estrategias para desarrollar productos, abrir canales comerciales y aprovechar la tecnología como motor de crecimiento.',
+  },
+]
+
+const FEATURED_CAPABILITIES = [
+  {
+    icon: 'strategy',
+    title: 'Estrategia y Negocio',
+    description: 'Transformación, crecimiento y competitividad.',
+  },
+  {
+    icon: 'transformation',
+    title: 'Procesos y Tecnología',
+    description: 'Eficiencia, digitalización y automatización.',
+  },
+  {
+    icon: 'innovation',
+    title: 'Innovación y Crecimiento',
+    description: 'Nuevos productos, canales y modelos de negocio.',
+  },
+]
+
+const CAROUSEL_INTERVAL_MS = 6000
+
 export default function Home() {
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (prefersReducedMotion || isPaused) return
+
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % HERO_MESSAGES.length)
+    }, CAROUSEL_INTERVAL_MS)
+
+    return () => clearInterval(timer)
+  }, [prefersReducedMotion, isPaused])
+
+  const currentMessage = HERO_MESSAGES[activeSlide]
+
   const fadeInUp = {
     initial: { opacity: 0, y: 24 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] }
+    transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] },
   }
+
+  const slideMotionProps = prefersReducedMotion
+    ? {
+        initial: false,
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 1, y: 0 },
+        transition: { duration: 0 },
+      }
+    : {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -8 },
+        transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+      }
 
   return (
     <>
       <SEOHead
-        title="Gastón Ramos | Consultor en Estrategia y Tecnología"
-        description="Consultoría senior en estrategia, tecnología y transformación digital para empresas de Argentina y Latinoamérica. Conocé la trayectoria de Gastón Ramos."
+        title="Gastón Ramos | Consultor Senior en Estrategia, Tecnología y Transformación de Negocios"
+        description="Consultor Senior en Estrategia, Tecnología y Transformación de Negocios. Optimización de procesos, modernización tecnológica, innovación y especialización en seguros y finanzas en Argentina y Latinoamérica."
         path="/"
         jsonLd={[PERSON_SCHEMA, WEBSITE_SCHEMA]}
       />
@@ -35,13 +119,30 @@ export default function Home() {
               initial="initial"
               animate="animate"
               className={styles.heroContent}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+              onFocusCapture={() => setIsPaused(true)}
+              onBlurCapture={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget)) {
+                  setIsPaused(false)
+                }
+              }}
             >
-              <div className={styles.eyebrow}>
-                <span>ESTRATEGIA</span>
-                <span className={styles.eyebrowDivider}>/</span>
-                <span>TECNOLOGÍA</span>
-                <span className={styles.eyebrowDivider}>/</span>
-                <span>TRANSFORMACIÓN</span>
+              <div className={styles.eyebrowSlot} aria-live="polite" aria-atomic="true">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={`eyebrow-${currentMessage.id}`}
+                    className={styles.eyebrow}
+                    {...slideMotionProps}
+                  >
+                    {currentMessage.categories.map((cat, idx) => (
+                      <span key={cat} className={styles.eyebrowGroup}>
+                        {idx > 0 && <span className={styles.eyebrowDivider}>/</span>}
+                        <span>{cat}</span>
+                      </span>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
               </div>
 
               <div className={styles.identityBlock}>
@@ -50,14 +151,60 @@ export default function Home() {
                   Ramos<span className={styles.yellowDot}>.</span>
                 </h1>
 
-                <p className={styles.mainTitle}>
-                  Transformando la Estrategia en <span className={styles.highlight}>Realidad</span>.
-                </p>
+                <div className={styles.mainTitleSlot} aria-live="polite" aria-atomic="true">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.p
+                      key={`title-${currentMessage.id}`}
+                      className={styles.mainTitle}
+                      {...slideMotionProps}
+                    >
+                      {currentMessage.titlePrefix}
+                      <span className={styles.highlight}>{currentMessage.titleHighlight}</span>
+                      {currentMessage.titleSuffix}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
               </div>
 
-              <p className={styles.description}>
-                Como Asesor Senior en Tecnología y Estrategia para Seguros, lidero la transformación mediante innovación, arquitectura empresarial y evolución digital para el mercado latinoamericano.
-              </p>
+              <div className={styles.descriptionSlot} aria-live="polite" aria-atomic="true">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.p
+                    key={`desc-${currentMessage.id}`}
+                    className={styles.description}
+                    {...slideMotionProps}
+                  >
+                    {currentMessage.description}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+
+              {/* Discrete manual selector indicators for the Hero Positioning Carousel */}
+              <div
+                className={styles.carouselControls}
+                role="group"
+                aria-label="Mensajes de posicionamiento profesional"
+              >
+                {HERO_MESSAGES.map((msg, idx) => {
+                  const isActive = idx === activeSlide
+                  return (
+                    <button
+                      key={msg.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveSlide(idx)
+                        setIsPaused(true)
+                      }}
+                      className={`${styles.carouselDot} ${
+                        isActive ? styles.carouselDotActive : ''
+                      }`}
+                      aria-label={`Mensaje ${idx + 1}: ${msg.label}`}
+                      aria-pressed={isActive}
+                    >
+                      <span className={styles.carouselDotBar} />
+                    </button>
+                  )
+                })}
+              </div>
 
               <div className={styles.ctaGroup}>
                 <Link href="/about" className={styles.primaryCta}>
@@ -68,31 +215,17 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Hero Pillars Preview (existing 3 core capabilities with GAR Icon System) */}
+              {/* Hero Pillars Preview (3 core capabilities with GAR Icon System) */}
               <div className={styles.heroPillars}>
-                <div className={styles.pillarItem}>
-                  <div className={styles.pillarIcon} aria-hidden="true">
-                    <GARIcon name="strategy" size={28} />
+                {FEATURED_CAPABILITIES.map((cap) => (
+                  <div key={cap.title} className={styles.pillarItem}>
+                    <div className={styles.pillarIcon} aria-hidden="true">
+                      <GARIcon name={cap.icon} size={28} />
+                    </div>
+                    <span className={styles.pillarTitle}>{cap.title}</span>
+                    <span className={styles.pillarMeta}>{cap.description}</span>
                   </div>
-                  <span className={styles.pillarTitle}>Estrategia Tecnológica</span>
-                  <span className={styles.pillarMeta}>Modernización de core y arquitectura</span>
-                </div>
-
-                <div className={styles.pillarItem}>
-                  <div className={styles.pillarIcon} aria-hidden="true">
-                    <GARIcon name="transformation" size={28} />
-                  </div>
-                  <span className={styles.pillarTitle}>Transformación Digital</span>
-                  <span className={styles.pillarMeta}>Automatización, canales e IA</span>
-                </div>
-
-                <div className={styles.pillarItem}>
-                  <div className={styles.pillarIcon} aria-hidden="true">
-                    <GARIcon name="innovation" size={28} />
-                  </div>
-                  <span className={styles.pillarTitle}>Innovación en Seguros</span>
-                  <span className={styles.pillarMeta}>Nuevos productos y modelos</span>
-                </div>
+                ))}
               </div>
             </motion.div>
 
@@ -169,33 +302,21 @@ export default function Home() {
               </div>
               <div className={styles.infoContent}>
                 <p>
-                  Socio Director de Kopernicus Tech, con más de 30 años de trayectoria liderando la convergencia estratégica entre el negocio asegurador y las plataformas tecnológicas de vanguardia.
+                  Más de 30 años de trayectoria asesorando a organizaciones en estrategia, procesos y tecnología para evolucionar sus negocios, con una especialización consolidada en la industria aseguradora y los servicios financieros en Argentina y Latinoamérica.
                 </p>
               </div>
             </div>
 
             <div className={styles.capabilitiesTeaser}>
-              <div className={styles.capabilityCard}>
-                <div className={styles.iconWrapper}>
-                  <GARIcon name="strategy" size={30} />
+              {FEATURED_CAPABILITIES.map((cap) => (
+                <div key={cap.title} className={styles.capabilityCard}>
+                  <div className={styles.iconWrapper}>
+                    <GARIcon name={cap.icon} size={30} />
+                  </div>
+                  <h3>{cap.title}</h3>
+                  <p>{cap.description}</p>
                 </div>
-                <h3>Estrategia Tecnológica</h3>
-                <p>Modernización de core y arquitectura empresarial para el futuro del seguro.</p>
-              </div>
-              <div className={styles.capabilityCard}>
-                <div className={styles.iconWrapper}>
-                  <GARIcon name="innovation" size={30} />
-                </div>
-                <h3>Innovación en Seguros</h3>
-                <p>Nuevos productos eficientes y modelos de negocio digitales disruptivos.</p>
-              </div>
-              <div className={styles.capabilityCard}>
-                <div className={styles.iconWrapper}>
-                  <GARIcon name="transformation" size={30} />
-                </div>
-                <h3>Transformación Digital</h3>
-                <p>Automatización, canales digitales e IA aplicada para maximizar la eficiencia.</p>
-              </div>
+              ))}
             </div>
           </div>
         </div>

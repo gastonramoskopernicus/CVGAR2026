@@ -50,6 +50,12 @@
   z-index: 3;
 }
 
+.eyebrowSlot {
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
 .eyebrow {
   display: inline-flex;
   flex-wrap: wrap;
@@ -60,6 +66,12 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+.eyebrowGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .eyebrowDivider {
@@ -87,6 +99,12 @@
   color: var(--accent-yellow);
 }
 
+.mainTitleSlot {
+  min-height: 4.35rem;
+  display: flex;
+  align-items: flex-start;
+}
+
 .mainTitle {
   font-family: var(--font-heading);
   font-size: clamp(1.25rem, 2vw, 1.65rem);
@@ -105,12 +123,63 @@
   font-weight: 700;
 }
 
+.descriptionSlot {
+  min-height: 5.5rem;
+  display: flex;
+  align-items: flex-start;
+}
+
 .description {
   font-size: clamp(0.98rem, 1.15vw, 1.08rem);
   line-height: 1.7;
   color: var(--text-secondary);
   max-width: 520px;
   margin: 0;
+}
+
+/* ---- Discrete Hero Positioning Carousel Indicators ---- */
+.carouselControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: -0.35rem;
+}
+
+.carouselDot {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carouselDotBar {
+  display: block;
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.2);
+  transition: width 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.carouselDot:hover .carouselDotBar,
+.carouselDot:focus-visible .carouselDotBar {
+  background-color: rgba(245, 183, 39, 0.6);
+}
+
+.carouselDotActive .carouselDotBar {
+  width: 40px;
+  background-color: var(--accent-yellow);
+  box-shadow: 0 0 10px rgba(245, 183, 39, 0.32);
+}
+
+.carouselDot:focus-visible {
+  outline: 1px solid var(--accent-yellow);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* ---- Buttons / CTAs ---- */
@@ -544,6 +613,18 @@
 
   .description {
     max-width: 100%;
+  }
+
+  .eyebrowSlot {
+    min-height: 2.25rem;
+  }
+
+  .mainTitleSlot {
+    min-height: 3.6rem;
+  }
+
+  .descriptionSlot {
+    min-height: 5.4rem;
   }
 
   .ctaGroup {

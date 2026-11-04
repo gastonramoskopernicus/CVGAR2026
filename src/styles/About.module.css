@@ -84,6 +84,65 @@
   color: var(--text-primary);
 }
 
+/* Three Strategic Dimensions */
+.dimensionsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 3.75rem;
+}
+
+.dimensionCard {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 2.25rem 2rem;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dimensionCard:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.dimensionIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--accent-yellow-soft);
+  border: 1px solid rgba(245, 183, 39, 0.25);
+  color: var(--accent-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.35rem;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.dimensionCard:hover .dimensionIcon {
+  background: var(--accent-yellow);
+  color: var(--text-on-light);
+  border-color: var(--accent-yellow);
+  --gar-icon-primary: #121316;
+  --gar-icon-secondary: #2a2d35;
+  --gar-icon-surface: #f5b727;
+}
+
+.dimensionTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.65rem;
+  letter-spacing: -0.015em;
+}
+
+.dimensionDescription {
+  font-size: 0.96rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
 /* Specialties */
 .specialties {
   padding: 5.5rem 0;
@@ -399,6 +458,10 @@
 
   .bioImageWrapper {
     max-width: 400px;
+  }
+
+  .dimensionsGrid {
+    grid-template-columns: 1fr;
   }
 }
 
