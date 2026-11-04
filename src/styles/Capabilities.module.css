@@ -1,172 +1,239 @@
+/* =========================================================
+   CAPABILITIES — V2 Contemporary Tech Editorial Grid
+   ========================================================= */
+
 .intro {
-  padding: 100px 0 80px;
+  padding: 5.5rem 0 4.5rem;
 }
 
 .header {
-  margin-bottom: 5rem;
-  border-bottom: 2px solid var(--foreground);
-  padding-bottom: 1.5rem;
+  margin-bottom: 4.5rem;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 2rem;
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 72px;
+  height: 2px;
+  background-color: var(--accent-yellow);
 }
 
 .title {
-  font-size: 4rem;
+  font-size: clamp(2.75rem, 5vw, 4.25rem);
   font-weight: 800;
   letter-spacing: -0.04em;
-  margin-bottom: 0.5rem;
+  line-height: 1.04;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
 }
 
 .subtitle {
-  font-size: 1.25rem;
-  color: var(--muted-foreground);
-  font-weight: 500;
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  color: var(--text-secondary);
+  font-weight: 400;
+  max-width: 680px;
+  line-height: 1.6;
 }
 
 .featuredCapability {
-  background: var(--foreground);
-  color: var(--background);
-  padding: 5rem;
-  border-radius: 4px;
-  margin-bottom: 6rem;
+  background:
+    radial-gradient(circle at 88% 22%, rgba(245, 183, 39, 0.14) 0%, rgba(200, 138, 40, 0.05) 45%, transparent 70%),
+    var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 4.5rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-accent);
+  margin-bottom: 4.5rem;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.4);
 }
 
 .featuredLabel {
   display: inline-block;
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.2rem;
-  color: var(--background);
-  opacity: 0.7;
-  margin-bottom: 1.5rem;
+  letter-spacing: 0.2em;
+  color: var(--accent-yellow);
+  margin-bottom: 1.25rem;
 }
 
 .featuredTitle {
-  font-size: 3rem;
+  font-size: clamp(2rem, 3.6vw, 3rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  color: var(--text-primary);
 }
 
 .featuredDescription {
-  font-size: 1.5rem;
-  line-height: 1.5;
-  opacity: 0.9;
-  max-width: 800px;
+  font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 820px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 3rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem;
 }
 
 .card {
-  background: white;
-  padding: 4rem;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  transition: all 0.3s ease;
+  background: var(--bg-elevated);
+  padding: 2.75rem 2.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .card:hover {
-  border-color: var(--foreground);
+  border-color: var(--border-accent);
+  transform: translateY(-4px);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.cardIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: var(--accent-yellow-soft);
+  border: 1px solid rgba(245, 183, 39, 0.25);
+  color: var(--accent-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.cardIcon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.card:hover .cardIcon {
+  background: var(--accent-yellow);
+  color: var(--text-on-light);
+}
+
+.cardIndex {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
 }
 
 .cardTitle {
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  line-height: 1.1;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.25;
   letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
 .cardDescription {
-  color: var(--muted-foreground);
-  line-height: 1.6;
-  font-size: 1.15rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-size: 0.98rem;
 }
 
 /* CTA Section */
 .ctaSection {
-  padding: 100px 0 150px;
+  padding: 3rem 0 7rem;
 }
 
 .ctaBox {
-  background: var(--secondary);
-  padding: 6rem;
-  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  padding: 4.5rem;
+  border-radius: 14px;
   text-align: left;
+  position: relative;
+  overflow: hidden;
 }
 
 .ctaTitle {
-  font-size: 3rem;
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
   font-weight: 800;
-  margin-bottom: 2rem;
-  letter-spacing: -0.04em;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
 }
 
 .ctaText {
-  font-size: 1.5rem;
-  line-height: 1.6;
-  color: var(--muted-foreground);
-  max-width: 800px;
-  margin-bottom: 3rem;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 760px;
+  margin-bottom: 2.25rem;
 }
 
 .contactBtn {
-  background: var(--foreground);
-  color: var(--background);
-  padding: 1.5rem 3rem;
-  border-radius: 4px;
+  background: var(--accent-yellow);
+  color: var(--text-on-light);
+  padding: 0.95rem 2.25rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 1.25rem;
-  display: inline-block;
-  transition: all 0.3s ease;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .contactBtn:hover {
+  background: var(--accent-yellow-hover);
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 26px rgba(245, 183, 39, 0.25);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1080px) {
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .title {
-    font-size: 3rem;
+  .intro {
+    padding: 3.5rem 0 3rem;
   }
-  
-  .featuredTitle {
-    font-size: 2.25rem;
+
+  .header {
+    margin-bottom: 3rem;
   }
-  
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
   .featuredCapability {
-    padding: 3rem 1.5rem;
-  }
-  
-  .featuredDescription {
-    font-size: 1.25rem;
-  }
-  
-  .card {
     padding: 2.5rem 1.5rem;
+    margin-bottom: 3rem;
   }
-  
+
+  .card {
+    padding: 2rem 1.5rem;
+  }
+
   .ctaBox {
-    padding: 3rem 1.5rem;
-  }
-  
-  .ctaTitle {
-    font-size: 2.25rem;
-  }
-  
-  .ctaText {
-    font-size: 1.2rem;
+    padding: 2.5rem 1.5rem;
   }
 }

@@ -22,7 +22,7 @@
 }
 
 .sectionHeader h2 svg {
-  color: #8b5cf6;
+  color: var(--accent-yellow);
 }
 
 .sectionHeader p {
@@ -89,8 +89,8 @@
 .toolCard:hover {
   transform: translateY(-4px);
   background: #1c1f26; /* Slightly lighter on hover to simulate elevation */
-  border-color: rgba(139, 92, 246, 0.5); /* Violet accent border */
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(139, 92, 246, 0.1);
+  border-color: rgba(245, 183, 39, 0.5); /* GR Yellow accent border */
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(245, 183, 39, 0.12);
 }
 
 .toolCard::before {
@@ -143,9 +143,9 @@
 }
 
 .badgeFeatured {
-  background: rgba(139, 92, 246, 0.15);
-  color: #ddd6fe;
-  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(245, 183, 39, 0.14);
+  color: #f5b727;
+  border-color: rgba(245, 183, 39, 0.35);
 }
 
 .toolDesc {
@@ -182,12 +182,12 @@
   gap: 0.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #a78bfa; /* Slightly lighter violet base state */
+  color: var(--accent-yellow);
   transition: all 0.2s ease;
 }
 
 .toolCard:hover .openLink {
-  color: #c4b5fd; /* Even lighter violet on hover */
+  color: var(--accent-yellow-hover);
 }
 
 .openLink svg {

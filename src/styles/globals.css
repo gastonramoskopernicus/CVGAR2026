@@ -1,48 +1,71 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --background: #fffcf5; /* Ivory / Off-White */
-  --foreground: #1a1a1a;
-  
-  --primary: #000000;
-  --primary-foreground: #ffffff;
-  
-  --secondary: #fdfaf0; /* Slightly darker ivory for depth */
-  --secondary-foreground: #18181b;
-  
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  
+  /* Contemporary Tech Editorial — GR Identity V2 Tokens */
+  --bg-primary: #0d0e11;
+  --bg-secondary: #14161b;
+  --bg-elevated: #181a20;
+  --bg-surface-hover: #1e2129;
+
+  --surface-light: #fffcf5;
+  --surface-warm: #f5f2eb;
+
+  --text-primary: #f5f2eb;
+  --text-secondary: #b4b9c4;
+  --text-muted: #7f8594;
+  --text-on-light: #121316;
+
+  --accent-yellow: #f5b727;
+  --accent-yellow-hover: #ffc947;
+  --accent-yellow-soft: rgba(245, 183, 39, 0.12);
+  --accent-ochre: #c88a28;
+  --accent-ochre-deep: #8f5f16;
+  --accent-ochre-glow: rgba(200, 138, 40, 0.22);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: #252830;
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(245, 183, 39, 0.4);
+
+  /* Semantic aliases for compatibility across components */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+
+  --primary: var(--accent-yellow);
+  --primary-foreground: var(--text-on-light);
+
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-secondary);
+
+  --accent: var(--accent-ochre);
+  --accent-foreground: var(--text-primary);
+
+  --border: var(--border-default);
+  --input: var(--border-default);
+
   --radius: 0.5rem;
-  
+
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Manrope', system-ui, -apple-system, sans-serif;
 }
 
 [data-theme='dark'] {
-  --background: #09090b;
-  --foreground: #fafafa;
-  
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
-  
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  
-  --border: #27272a;
-  --input: #27272a;
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --primary: var(--accent-yellow);
+  --primary-foreground: var(--text-on-light);
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-ochre);
+  --accent-foreground: var(--text-primary);
+  --border: var(--border-default);
+  --input: var(--border-default);
 }
 
 * {
@@ -66,7 +89,8 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
 }
 
 a {
@@ -79,16 +103,22 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+  font-family: inherit;
 }
 
 ul {
   list-style: none;
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent-yellow);
+  outline-offset: 3px;
+}
+
 .container {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 2.5rem;
 }
 
 .section-padding {
@@ -96,6 +126,10 @@ ul {
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+
   .section-padding {
     padding: 3rem 0;
   }
@@ -115,5 +149,16 @@ ul {
 
 .animate-fade-up {
   animation: fadeInUp 0.5s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

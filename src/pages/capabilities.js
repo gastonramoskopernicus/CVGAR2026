@@ -45,7 +45,7 @@ export default function Capabilities() {
       <div className={styles.intro}>
         <div className="container">
           <div className={styles.header}>
-            <h1 className={styles.title} style={{ color: '#000000' }}>Capacidades</h1>
+            <h1 className={styles.title}>Capacidades</h1>
             <p className={styles.subtitle}>Soluciones estratégicas y ejecución técnica para los desafíos reales del sector asegurador.</p>
           </div>
 
@@ -60,11 +60,14 @@ export default function Capabilities() {
           <div className={styles.grid}>
             {secondaryServices.map((service, index) => (
               <div key={index} className={styles.card}>
-                <div className={styles.cardIcon} style={{ color: '#000000', marginBottom: '1.5rem' }}>
-                  {service.icon}
+                <div className={styles.cardTop}>
+                  <div className={styles.cardIcon}>
+                    {service.icon}
+                  </div>
+                  <span className={styles.cardIndex}>{String(index + 1).padStart(2, '0')}</span>
                 </div>
-                <h3 className={styles.cardTitle} style={{ color: '#000000' }}>{service.title}</h3>
-                <p className={styles.cardDescription} style={{ color: '#555555' }}>{service.description}</p>
+                <h3 className={styles.cardTitle}>{service.title}</h3>
+                <p className={styles.cardDescription}>{service.description}</p>
               </div>
             ))}
           </div>

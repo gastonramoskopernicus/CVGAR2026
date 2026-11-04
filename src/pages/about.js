@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import styles from '@/styles/About.module.css'
 import ExperienceMap from '../components/ExperienceMap'
+import EcosystemSection from '../components/EcosystemSection'
 
 export default function About() {
   const specialties = [
@@ -135,7 +136,7 @@ export default function About() {
       <div className={styles.intro}>
         <div className="container">
           <div className={styles.header}>
-            <h1 className={styles.title} style={{ color: '#000000' }}>Sobre Mí</h1>
+            <h1 className={styles.title}>Sobre Mí</h1>
             <p className={styles.subtitle}>Trayectoria de liderazgo enfocada en la transformación del sector asegurador.</p>
           </div>
 
@@ -167,12 +168,12 @@ export default function About() {
 
       <section className={styles.specialties}>
         <div className="container">
-          <h2 className={styles.sectionTitle} style={{ color: '#000000' }}>Expertise y Áreas de Enfoque</h2>
+          <h2 className={styles.sectionTitle}>Expertise y Áreas de Enfoque</h2>
           <div className={styles.specialtiesGrid}>
             {specialties.map((item, index) => (
               <motion.div 
                 key={index}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ y: -2 }}
                 className={styles.specialtyCard}
               >
                 {item}
@@ -188,18 +189,18 @@ export default function About() {
 
       <section className={styles.experience}>
         <div className="container">
-          <h2 className={styles.sectionTitle} style={{ color: '#000000' }}>Trayectoria Profesional</h2>
+          <h2 className={styles.sectionTitle}>Trayectoria Profesional</h2>
           <div className={styles.timeline}>
             {timeline.map((item, index) => (
               <div key={index} className={styles.timelineItem}>
                 <div className={styles.expHeader}>
                   <div>
-                    <h3 className={styles.role} style={{ color: '#000000' }}>{item.role}</h3>
+                    <h3 className={styles.role}>{item.role}</h3>
                     <span className={styles.company}>{item.company}</span>
                   </div>
                   <span className={styles.period}>{item.period}</span>
                 </div>
-                <p className={styles.expDescription} style={{ color: '#444444' }}>{item.description}</p>
+                <p className={styles.expDescription}>{item.description}</p>
                 <ul className={styles.expList}>
                   {item.highlights.map((h, i) => (
                     <li key={i}>{h}</li>
@@ -211,24 +212,26 @@ export default function About() {
         </div>
       </section>
 
+      <EcosystemSection />
+
       <section className={styles.education}>
         <div className="container">
-          <h2 className={styles.sectionTitle} style={{ color: '#000000' }}>Formación Académica</h2>
+          <h2 className={styles.sectionTitle}>Formación Académica</h2>
           <div className={styles.eduGrid}>
             <div className={styles.eduItem}>
-              <h3 style={{ color: '#000000' }}>Licenciatura en Sistemas de Información</h3>
+              <h3>Licenciatura en Sistemas de Información</h3>
               <p>Universidad del Salvador</p>
             </div>
             <div className={styles.eduItem}>
-              <h3 style={{ color: '#000000' }}>Licenciatura en Administración de Empresas</h3>
+              <h3>Licenciatura en Administración de Empresas</h3>
               <p>Universidad del Salvador</p>
             </div>
             <div className={styles.eduItem}>
-              <h3 style={{ color: '#000000' }}>Posgrado en Derecho y Seguros</h3>
+              <h3>Posgrado en Derecho y Seguros</h3>
               <p>Universidad de Buenos Aires (UBA)</p>
             </div>
             <div className={styles.eduItem}>
-              <h3 style={{ color: '#000000' }}>Certificación IAOP</h3>
+              <h3>Certificación IAOP</h3>
               <p>International Association of Outsourcing Professionals</p>
             </div>
           </div>

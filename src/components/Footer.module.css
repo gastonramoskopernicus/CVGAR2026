@@ -5,10 +5,11 @@
    ========================================================= */
 
 .footer {
-  background-color: #1a1a1a;
-  color: rgba(255, 255, 255, 0.6);
+  background-color: #111216;
+  color: rgba(255, 255, 255, 0.62);
   padding-top: 5rem;
   padding-bottom: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* =========== Grid =========== */
@@ -30,7 +31,8 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background-color: #fffcf5;
+  background-color: #f5f2eb;
+  border: 1.5px solid rgba(245, 183, 39, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,26 +40,26 @@
 }
 
 .brandLogoText {
-  font-family: var(--font-heading), 'Outfit', sans-serif;
+  font-family: var(--font-heading), 'Manrope', sans-serif;
   font-weight: 800;
   font-size: 0.78rem;
   letter-spacing: 1.5px;
-  color: #1a1a1a;
+  color: #111216;
 }
 
 .brandName {
-  font-family: var(--font-heading), 'Outfit', sans-serif;
-  font-size: 1rem;
+  font-family: var(--font-heading), 'Manrope', sans-serif;
+  font-size: 1.02rem;
   font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.01em;
+  color: #f5f2eb;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 .brandTagline {
   font-size: 0.75rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+  color: #c88a28;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin: 0;
@@ -66,8 +68,8 @@
 .brandDescription {
   font-size: 0.88rem;
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.45);
-  max-width: 300px;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 310px;
   margin: 0;
 }
 
@@ -79,12 +81,12 @@
 }
 
 .blockTitle {
-  font-family: var(--font-heading), 'Outfit', sans-serif;
-  font-size: 0.68rem;
+  font-family: var(--font-heading), 'Manrope', sans-serif;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
+  color: #f5f2eb;
 }
 
 .blockList {
@@ -93,19 +95,19 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.65rem;
 }
 
 .blockLink {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.58);
   text-decoration: none;
   transition: color 0.2s ease, padding-left 0.2s ease;
   display: inline-block;
 }
 
 .blockLink:hover {
-  color: rgba(255, 255, 255, 0.95);
+  color: #f5b727;
   padding-left: 4px;
 }
 
@@ -121,14 +123,14 @@
   align-items: center;
   gap: 0.6rem;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.58);
   text-decoration: none;
   transition: color 0.2s ease;
   word-break: break-word;
 }
 
 .socialItem:hover {
-  color: rgba(255, 255, 255, 0.95);
+  color: #f5b727;
 }
 
 /* Location item */

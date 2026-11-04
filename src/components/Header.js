@@ -48,11 +48,11 @@ const Header = () => {
       <div className="container">
         <nav className={styles.nav} aria-label="Navegación principal">
 
-          {/* Logo — left */}
+          {/* Logo — left (Monograma GR.) */}
           <Link href="/" className={styles.logo} aria-label="Inicio — Gastón Alejandro Ramos">
-            <div className={styles.logoCircle}>
-              <span className={styles.logoText}>GAR</span>
-            </div>
+            <span className={styles.logoMark}>
+              GR<span className={styles.logoDot}>.</span>
+            </span>
           </Link>
 
           {/* Desktop nav — right */}

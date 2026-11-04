@@ -75,7 +75,7 @@ export default function Hobbies() {
       <div className={baseStyles.intro}>
         <div className="container">
           <div className={baseStyles.header}>
-            <h1 className={baseStyles.title} style={{ color: '#000000' }}>Pasatiempos e intereses</h1>
+            <h1 className={baseStyles.title}>Pasatiempos e intereses</h1>
             <p className={baseStyles.subtitle}>Más allá de la estrategia: los pilares que dan forma a mi visión personal y profesional.</p>
           </div>
 

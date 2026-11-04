@@ -87,7 +87,7 @@ export default function Multimedia() {
       <div className={styles.intro}>
         <div className="container">
           <div className={styles.header}>
-            <h1 className={styles.title} style={{ color: '#000000' }}>Multimedia / contenidos</h1>
+            <h1 className={styles.title}>Multimedia / contenidos</h1>
             <p className={styles.subtitle}>Explora mis últimas reflexiones, análisis y videos sobre la industria Insurtech.</p>
           </div>
 
@@ -126,8 +126,8 @@ export default function Multimedia() {
                 </div>
                 
                 <div className={styles.cardBody}>
-                  <h3 className={styles.cardTitle} style={{ color: '#000000' }}>{item.title}</h3>
-                  <p className={styles.cardDescription} style={{ color: '#555555' }}>{item.description}</p>
+                  <h3 className={styles.cardTitle}>{item.title}</h3>
+                  <p className={styles.cardDescription}>{item.description}</p>
                 </div>
 
                 <div className={styles.cardFooter}>
