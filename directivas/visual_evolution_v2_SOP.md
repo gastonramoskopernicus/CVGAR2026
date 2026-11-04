@@ -86,3 +86,16 @@ Evolucionar la identidad visual de `gastonramos.com.ar` hacia el sistema de dise
    - Biblioteca privada de materiales profesionales (PDF, PPTX, imágenes, enlaces a videos y documentos autorizados) protegida en servidor (`getServerSideProps` + APIs `/api/showcase/*`).
    - Almacenamiento privado fuera de `public/` (en `.storage/showcase/`, ignorado en git y nunca servido estáticamente), entrega y previsualización mediante endpoint autorizado `/api/showcase/file/[id]`, validación estricta de MIME/extensión/tamaño, nombres de archivo seguros (UUID), CRUD completo (listado, alta, edición de título/descripción/categoría/tags, vista previa, descarga autorizada, eliminación con confirmación) y registro de auditoría (`audit.log.json`), dejando preparada la estructura para futuros enlaces compartidos controlados (`shareToken: null`, `sharingEnabled: false`).
    - *Nota: En los tests de verificación SSR (`scripts/verify_v22.py`), no validar contra cadenas genéricas; verificar explícitamente el badge `Acceso Restringido · OAuth 2.0 / OIDC` de `PrivateAuthGate` y asegurar que ninguno de los dominios reales de `src/data/privateApps.js` (`crm-kps.vercel.app`, `car-admin-ebon.vercel.app`, `kpsenergy.com.ar`, `crypto-admin-web.vercel.app`) ni los IDs de `.storage/showcase/index.json` se filtren en el payload `__NEXT_DATA__` cuando la sesión no está autorizada. Asimismo, en el test unitario de `src/lib/showcaseStore.js`, invocar las funciones exportadas reales (`readCatalog`, `validateAndSavePrivateFile`, `createSignedFileToken`, `verifySignedFileToken`).*
+
+---
+
+## 11. Corrección Quirúrgica del Hombro en Fotografía del Hero y Despliegue Autorizado a Producción
+1. **Diagnóstico del Defecto Visual:**
+   - En `scripts/process_hero_portrait.py`, el uso de `rembg.remove(..., alpha_matting=True, alpha_matting_erode_size=8)` generó un borde escalonado/pixelado (bloques de ~8 px) sobre el contorno del hombro izquierdo de la imagen (`public/FotoGAR-nobg.webp` y `public/FotoGAR-nobg.png`), donde el saco oscuro se funde con el fondo oscuro del estudio en `public/FotoGAR.jpeg`.
+2. **Regla de Corrección Quirúrgica:**
+   - Partir del archivo original `public/FotoGAR.jpeg` (1080×1600) y del canal alfa actual de `public/FotoGAR-nobg.png`.
+   - Preservar intactos el rostro, expresión, cabeza, barba, vestimenta y el lado derecho de la imagen.
+   - En la región del hombro izquierdo de la imagen (`x` entre `0` y el cuello/solapa izquierda, `y` en la franja del contorno del hombro), reconstruir el canal alfa mediante una curva suave sub-píxel (spline / interpolación polinómica ajustada al borde real del saco en `FotoGAR.jpeg` con transición anti-aliasing gaussiana de 1.5 px), eliminando por completo los escalones dentados y cualquier halo, y tomando los píxeles RGB directamente de `public/FotoGAR.jpeg`.
+3. **Promoción y Despliegue a Producción (Expresamente Autorizado):**
+   - Una vez verificado visualmente el recorte en `.tmp/` y compilado el proyecto (`npm run build`), realizar merge fast-forward/clean de `feature/gr-visual-evolution-v2` hacia `main` y publicar en producción (`https://gastonramos.com.ar/`), verificando la respuesta HTTP 200 de todas las rutas públicas y la protección de `/aplicaciones` y `/showcase`.
+
