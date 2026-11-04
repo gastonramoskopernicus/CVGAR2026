@@ -11,7 +11,8 @@ const Layout = ({ children }) => {
         <title>Gastón Alejandro Ramos | Insurance Technology & Strategy Advisor</title>
         <meta name="description" content="Insurance Technology & Strategy Advisor - Helping insurance companies transform through strategy, technology, and innovation." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="alternate icon" href="/favicon.ico" />
       </Head>
       <div className={styles.wrapper}>
         <Header />

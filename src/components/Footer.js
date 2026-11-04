@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Monogram from './Monogram'
 import styles from './Footer.module.css'
 
 const Footer = () => {
@@ -21,7 +22,7 @@ const Footer = () => {
           {/* Bloque 1 — Marca */}
           <div className={styles.brand}>
             <div className={styles.brandLogo}>
-              <span className={styles.brandLogoText}>GAR</span>
+              <Monogram variant="footer" />
             </div>
             <p className={styles.brandName}>Gastón Alejandro Ramos</p>
             <p className={styles.brandTagline}>

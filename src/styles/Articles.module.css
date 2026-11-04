@@ -119,6 +119,67 @@
   transform: scale(1.04);
 }
 
+.videoIframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
+}
+
+/* Editorial Architectural Banner for Disertaciones & Artículos (no invented images) */
+.editorialCover {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 78% 24%, rgba(245, 183, 39, 0.14) 0%, rgba(200, 138, 40, 0.06) 42%, transparent 70%),
+    linear-gradient(135deg, #12141a 0%, #0d0e11 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.editorialPattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 50%, #000 45%, transparent 95%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 45%, transparent 95%);
+}
+
+.editorialCenterIcon {
+  position: relative;
+  z-index: 1;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(245, 183, 39, 0.06);
+  border: 1px solid rgba(245, 183, 39, 0.26);
+  box-shadow: 0 0 36px rgba(245, 183, 39, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.35s ease, border-color 0.35s ease;
+}
+
+.card:hover .editorialCenterIcon {
+  transform: scale(1.06);
+  border-color: rgba(245, 183, 39, 0.55);
+}
+
+.editorialWatermark {
+  position: absolute;
+  bottom: 0.9rem;
+  right: 1.15rem;
+  opacity: 0.42;
+  z-index: 1;
+}
+
 .cardHeaderOverlay {
   position: absolute;
   top: 1rem;
@@ -128,16 +189,21 @@
   justify-content: space-between;
   align-items: center;
   z-index: 2;
+  pointer-events: none;
 }
 
 .playOverlay {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  cursor: pointer;
   background: rgba(13, 14, 17, 0.35);
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: 0.88;
+  opacity: 0.9;
   transition: opacity 0.25s ease, background 0.25s ease;
 }
 
@@ -172,16 +238,25 @@
 }
 
 .cardTitle {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.32;
   letter-spacing: -0.02em;
   color: var(--text-primary);
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
+.cardTopic {
+  font-family: var(--font-heading);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--accent-yellow);
+  letter-spacing: 0.01em;
+  margin-bottom: 0.65rem;
 }
 
 .cardDescription {
-  font-size: 0.98rem;
+  font-size: 0.96rem;
   line-height: 1.65;
   color: var(--text-secondary);
 }
@@ -200,13 +275,28 @@
 }
 
 .typeTag {
-  background: rgba(18, 19, 22, 0.78);
+  background: rgba(18, 19, 22, 0.82);
   backdrop-filter: blur(8px);
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 0.72rem;
   font-weight: 600;
+  color: var(--text-primary);
+}
+
+.typeDisertacion {
+  border-color: rgba(245, 183, 39, 0.45);
+  color: var(--accent-yellow);
+}
+
+.typeEntrevista {
+  border-color: rgba(200, 138, 40, 0.55);
+  color: #f5d07a;
+}
+
+.typeArticulo {
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--text-primary);
 }
 
@@ -273,6 +363,13 @@
   margin-bottom: 2.25rem;
 }
 
+.socialActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
 .youtubeBtn {
   background: var(--accent-yellow);
   color: var(--text-on-light);
@@ -289,6 +386,26 @@
   background: var(--accent-yellow-hover);
   transform: translateY(-2px);
   box-shadow: 0 10px 26px rgba(245, 183, 39, 0.25);
+}
+
+.secondaryMultimediaBtn {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.95rem 1.85rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.96rem;
+  display: inline-block;
+  transition: border-color 0.22s ease, color 0.22s ease, background-color 0.22s ease, transform 0.22s ease;
+}
+
+.secondaryMultimediaBtn:hover {
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+  background: rgba(245, 183, 39, 0.06);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 1024px) {

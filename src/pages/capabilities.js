@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
+import GARIcon from '@/components/GARIcon'
 import styles from '@/styles/Capabilities.module.css'
 
 export default function Capabilities() {
@@ -7,32 +8,32 @@ export default function Capabilities() {
     {
       title: "Transformación Digital para Aseguradoras",
       description: "Evolución integral del modelo operativo, desde la captura del riesgo hasta la atención de siniestros, apalancándose en tecnología digital de última generación.",
-      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      icon: <GARIcon name="transformation" size={34} />
     },
     {
       title: "Modernización de Core Systems",
       description: "Consultoría experta en la selección, migración e implementación de sistemas centrales de seguros y plataformas críticas para el negocio.",
-      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20L4 4m16 0L4 20"></path></svg>
+      icon: <GARIcon name="architecture" size={34} />
     },
     {
       title: "Innovación en Productos",
       description: "Diseño y lanzamiento de nuevos productos y pólizas bajo demanda con un enfoque centrado en el cliente y el aprovechamiento de datos.",
-      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      icon: <GARIcon name="innovation" size={34} />
     },
     {
       title: "Automatización & IA",
       description: "Implementación de inteligencia artificial y automatización inteligente para optimizar procesos comerciales y operativos en seguros.",
-      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M4.93 4.93l2.83 2.83"></path><path d="M16.24 16.24l2.83 2.83"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="M4.93 19.07l2.83-2.83"></path><path d="M16.24 7.76l2.83-2.83"></path></svg>
+      icon: <GARIcon name="ai" size={34} />
     },
     {
       title: "Canales Digitales & B2B2C",
       description: "Desarrollo de ecosistemas de distribución digital y canales de venta directa que potencian la llegada al mercado.",
-      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      icon: <GARIcon name="ventures" size={34} />
     },
     {
       title: "Siniestros & Eficiencia",
       description: "Optimización de la cadena de valor en gestión de siniestros para reducir costos operativos y mejorar la satisfacción del cliente.",
-      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      icon: <GARIcon name="operations" size={34} />
     }
   ]
 

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
+import Monogram from './Monogram'
 import styles from './Header.module.css'
 
 const navItems = [
@@ -48,11 +49,9 @@ const Header = () => {
       <div className="container">
         <nav className={styles.nav} aria-label="Navegación principal">
 
-          {/* Logo — left (Monograma GR.) */}
+          {/* Logo — left (Monograma GAR.) */}
           <Link href="/" className={styles.logo} aria-label="Inicio — Gastón Alejandro Ramos">
-            <span className={styles.logoMark}>
-              GR<span className={styles.logoDot}>.</span>
-            </span>
+            <Monogram variant="header" />
           </Link>
 
           {/* Desktop nav — right */}

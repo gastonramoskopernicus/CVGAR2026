@@ -1,0 +1,51 @@
+.monogram {
+  font-family: var(--font-heading), 'Manrope', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  user-select: none;
+}
+
+.dot {
+  color: var(--accent-yellow, #f5b727);
+  margin-left: 1px;
+}
+
+/* Variants */
+.header {
+  font-size: 1.7rem;
+  color: var(--text-primary, #f5f2eb);
+}
+
+.footer {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary, #f5f2eb);
+}
+
+.sticky {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary, #f5f2eb);
+}
+
+.sticky .dot {
+  color: var(--accent-yellow, #f5b727);
+}
+
+.inline {
+  font-size: 1rem;
+  color: var(--text-primary, #f5f2eb);
+}
+
+@media (max-width: 768px) {
+  .header {
+    font-size: 1.48rem;
+  }
+
+  .sticky {
+    font-size: 0.75rem;
+  }
+}

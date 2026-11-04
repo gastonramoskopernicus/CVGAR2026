@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Monogram from './Monogram'
 import styles from './StickyIcon.module.css'
 
 const StickyIcon = () => {
@@ -23,7 +24,7 @@ const StickyIcon = () => {
       aria-label="Volver al inicio"
       title="Volver al inicio"
     >
-      <span className={styles.initials}>GAR</span>
+      <Monogram variant="sticky" />
     </button>
   )
 }

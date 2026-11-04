@@ -2,6 +2,8 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import GARIcon from '@/components/GARIcon'
+import ProfessionalEcosystem from '@/components/ProfessionalEcosystem'
 import styles from '@/styles/Home.module.css'
 
 export default function Home() {
@@ -62,15 +64,11 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Hero Pillars Preview (existing 3 core capabilities) */}
+              {/* Hero Pillars Preview (existing 3 core capabilities with GAR Icon System) */}
               <div className={styles.heroPillars}>
                 <div className={styles.pillarItem}>
                   <div className={styles.pillarIcon} aria-hidden="true">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                      <polyline points="2 12 12 17 22 12" />
-                      <polyline points="2 17 12 22 22 17" />
-                    </svg>
+                    <GARIcon name="strategy" size={28} />
                   </div>
                   <span className={styles.pillarTitle}>Estrategia Tecnológica</span>
                   <span className={styles.pillarMeta}>Modernización de core y arquitectura</span>
@@ -78,14 +76,7 @@ export default function Home() {
 
                 <div className={styles.pillarItem}>
                   <div className={styles.pillarIcon} aria-hidden="true">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="5" r="2.5" />
-                      <circle cx="5" cy="19" r="2.5" />
-                      <circle cx="19" cy="19" r="2.5" />
-                      <line x1="10.5" y1="7" x2="6.5" y2="16.8" />
-                      <line x1="13.5" y1="7" x2="17.5" y2="16.8" />
-                      <line x1="7.5" y1="19" x2="16.5" y2="19" />
-                    </svg>
+                    <GARIcon name="transformation" size={28} />
                   </div>
                   <span className={styles.pillarTitle}>Transformación Digital</span>
                   <span className={styles.pillarMeta}>Automatización, canales e IA</span>
@@ -93,12 +84,7 @@ export default function Home() {
 
                 <div className={styles.pillarItem}>
                   <div className={styles.pillarIcon} aria-hidden="true">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-                      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-                      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-                      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-                    </svg>
+                    <GARIcon name="innovation" size={28} />
                   </div>
                   <span className={styles.pillarTitle}>Innovación en Seguros</span>
                   <span className={styles.pillarMeta}>Nuevos productos y modelos</span>
@@ -106,7 +92,7 @@ export default function Home() {
               </div>
             </motion.div>
 
-            {/* Right Column — Protagonist Portrait & Animated Circular Element Behind */}
+            {/* Right Column — Protagonist Cutout Silhouette & Animated Circular Element Behind */}
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -125,7 +111,7 @@ export default function Home() {
                     <defs>
                       <path
                         id="circlePath"
-                        d="M 180, 180 m -154, 0 a 154,154 0 1,1 308,0 a 154,154 0 1,1 -308,0"
+                        d="M 180, 180 m -158, 0 a 158,158 0 1,1 316,0 a 158,158 0 1,1 -316,0"
                         fill="transparent"
                       />
                     </defs>
@@ -138,18 +124,17 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Personal Photograph Integrated Naturally */}
+              {/* Personal Photograph Cutout (Transparent Alpha Channel, No Rectangular Frame) */}
               <div className={styles.imageWrapper}>
                 <div className={styles.imageBackground}>
                   <Image
-                    src="/FotoGAR.jpeg"
+                    src="/FotoGAR-nobg.webp"
                     alt="Gastón Alejandro Ramos"
                     fill
-                    sizes="(max-width: 480px) 300px, (max-width: 768px) 380px, (max-width: 1024px) 45vw, 480px"
+                    sizes="(max-width: 480px) 320px, (max-width: 768px) 400px, (max-width: 1024px) 46vw, 500px"
                     className={styles.heroImage}
                     priority
                   />
-                  <div className={styles.imageVignette} aria-hidden="true" />
                 </div>
               </div>
             </motion.div>
@@ -187,21 +172,21 @@ export default function Home() {
             <div className={styles.capabilitiesTeaser}>
               <div className={styles.capabilityCard}>
                 <div className={styles.iconWrapper}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  <GARIcon name="strategy" size={30} />
                 </div>
                 <h3>Estrategia Tecnológica</h3>
                 <p>Modernización de core y arquitectura empresarial para el futuro del seguro.</p>
               </div>
               <div className={styles.capabilityCard}>
                 <div className={styles.iconWrapper}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"></path><path d="m4.93 4.93 5.66 5.66"></path><path d="M2 12h8"></path><path d="m4.93 19.07 5.66-5.66"></path><path d="M12 22v-8"></path><path d="m19.07 19.07-5.66-5.66"></path><path d="M22 12h-8"></path><path d="m19.07 4.93-5.66 5.66"></path></svg>
+                  <GARIcon name="innovation" size={30} />
                 </div>
                 <h3>Innovación en Seguros</h3>
                 <p>Nuevos productos eficientes y modelos de negocio digitales disruptivos.</p>
               </div>
               <div className={styles.capabilityCard}>
                 <div className={styles.iconWrapper}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                  <GARIcon name="transformation" size={30} />
                 </div>
                 <h3>Transformación Digital</h3>
                 <p>Automatización, canales digitales e IA aplicada para maximizar la eficiencia.</p>
@@ -210,6 +195,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Ecosistema Profesional — Pre-Footer Section */}
+      <ProfessionalEcosystem />
     </>
   )
 }

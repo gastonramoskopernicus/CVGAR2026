@@ -45,3 +45,4 @@ export const ecosystemEntities = [
     published: false, // Pendiente de contenido verificado en Fase 2
   },
 ]
+
