@@ -1,12 +1,18 @@
 import {
   validateAndSanitizeContactInput,
   dispatchContactEmail,
+  dispatchVisitorAutoReplyEmail,
   MAX_PAYLOAD_BYTES,
 } from '@/lib/contactEmailService'
 import { verifyTurnstileToken, EXPECTED_TURNSTILE_ACTION } from '@/lib/turnstileVerify'
 import {
   resolveTrustedClientIp,
   evaluateContactRateLimits,
+  evaluateAndConsumeAutoReplyQuota,
+  releaseAutoReplyCooldownOnFailure,
+  registerFailedAutoReplyTicket,
+  getAutoReplyTicket,
+  updateAutoReplyTicketStatus,
   releaseDuplicateLockOnFailure,
   resetRateLimiterStoreForTests,
 } from '@/lib/contactRateLimiter'
@@ -39,7 +45,6 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   res.setHeader('X-Request-Id', requestId)
 
-  // En entorno QA/Desarrollo, permitir comandos de soporte del arnés de pruebas automatizadas
   const isQaHarness =
     process.env.NODE_ENV !== 'production' && req.headers?.['x-qa-test-suite'] === 'gar-antispam-qa'
 
@@ -55,6 +60,50 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST'])
     return res.status(405).json({ ok: false, error: USER_SAFE_ERROR_MSG })
+  }
+
+  // Gestión separada e idempotente de reintento de confirmación automática (sin repetir notificación interna)
+  const retryTicketId = req.headers?.['x-autoreply-retry-id']
+  if (typeof retryTicketId === 'string' && retryTicketId.trim()) {
+    const ticket = getAutoReplyTicket(retryTicketId.trim())
+    if (!ticket) {
+      return res.status(404).json({ ok: false, error: USER_SAFE_ERROR_MSG })
+    }
+    if (ticket.status === 'SENT') {
+      return res.status(200).json({
+        ok: true,
+        alreadySent: true,
+        autoReplyStatus: 'SENT',
+        requestId: ticket.requestId,
+      })
+    }
+    if ((ticket.attempts || 1) >= (ticket.maxAttempts || 2)) {
+      return res.status(429).json({ ok: false, error: USER_RATE_LIMIT_MSG })
+    }
+
+    const qaMockMode = isQaHarness ? req.headers?.['x-qa-mock-provider'] || null : null
+    const retryRes = await dispatchVisitorAutoReplyEmail(
+      { nombre: ticket.nombre, email: ticket.email },
+      { qaMockMode }
+    )
+
+    if (!retryRes.ok || !retryRes.providerAccepted) {
+      updateAutoReplyTicketStatus(ticket.requestId, {
+        status: 'RETRY_FAILED',
+        errorCode: retryRes.errorCode || 'AUTOREPLY_RETRY_FAILED',
+      })
+      return res.status(502).json({ ok: false, error: USER_SAFE_ERROR_MSG })
+    }
+
+    updateAutoReplyTicketStatus(ticket.requestId, {
+      status: 'SENT',
+      messageId: retryRes.messageId || null,
+    })
+    return res.status(200).json({
+      ok: true,
+      autoReplyStatus: 'SENT',
+      requestId: ticket.requestId,
+    })
   }
 
   const ip = resolveTrustedClientIp(req)
@@ -94,7 +143,7 @@ export default async function handler(req, res) {
     })
   }
 
-  // 2. Honeypot antispam — si está completo, bloquear envío sin llamar al proveedor y registrar evento
+  // 2. Honeypot antispam — si está completo, bloquear envío sin llamar al proveedor
   if (body._trap && String(body._trap).trim() !== '') {
     recordContactSecurityEvent({
       requestId,
@@ -112,7 +161,7 @@ export default async function handler(req, res) {
     })
   }
 
-  // 3. Validación estricta de contenido, campos prohibidos (to, cc, bcc, from, template, attachments) y CRLF
+  // 3. Validación estricta de contenido, campos prohibidos y CRLF
   const validation = validateAndSanitizeContactInput(body)
   if (!validation.valid) {
     recordContactSecurityEvent({
@@ -155,7 +204,6 @@ export default async function handler(req, res) {
       ip,
       email: validation.data.email,
     })
-    // No exponer detalles internos de validación de Turnstile al navegador
     return res.status(400).json({
       ok: false,
       providerAccepted: false,
@@ -163,7 +211,7 @@ export default async function handler(req, res) {
     })
   }
 
-  // 5. Rate Limiting Distribuido (IP 15m, IP 24h, Email 60m, Global 60m) + Duplicados (30m)
+  // 5. Rate Limiting Distribuido (IP 15m, IP 24h, Email 60m, Global 60m, Global Emails 60m) + Duplicados (30m)
   const idempotencyKey =
     typeof req.headers?.['x-idempotency-key'] === 'string'
       ? req.headers['x-idempotency-key']
@@ -200,25 +248,25 @@ export default async function handler(req, res) {
     })
   }
 
-  // 6. Despacho seguro hacia el proveedor de email (con control de concurrencia y timeout)
+  // 6. PRIORIDAD 1: Despacho del Correo Interno a info@gastonramos.com.ar (sin CC ni BCC)
   const qaMockMode = isQaHarness ? req.headers?.['x-qa-mock-provider'] || null : null
-  const sendResult = await dispatchContactEmail(validation.data, { qaMockMode })
+  const internalResult = await dispatchContactEmail(validation.data, { qaMockMode })
 
-  if (!sendResult.ok || !sendResult.providerAccepted) {
-    // Liberar bloqueo de mensaje duplicado cuando el fallo es del proveedor para permitir reintento legítimo
+  if (!internalResult.ok || !internalResult.providerAccepted) {
+    // Si el correo interno falla, liberar bloqueo de duplicado y NO generar confirmación al visitante
     releaseDuplicateLockOnFailure({
       messageHash: rateLimitResult.messageHash,
       cleanIdemKey: rateLimitResult.cleanIdemKey,
     })
 
-    const isConcurrencyLimit = sendResult.errorCode === 'CONCURRENCY_LIMIT_EXCEEDED'
+    const isConcurrencyLimit = internalResult.errorCode === 'CONCURRENCY_LIMIT_EXCEEDED'
 
     recordContactSecurityEvent({
       requestId,
       validationResult: isConcurrencyLimit ? 'BLOCKED_CONCURRENCY' : 'PASS',
       accepted: false,
-      technicalReason: sendResult.errorCode || 'PROVIDER_FAILURE',
-      providerResult: `${sendResult.provider || 'UNKNOWN'}_${sendResult.errorCode || 'ERROR'}`,
+      technicalReason: internalResult.errorCode || 'PROVIDER_FAILURE',
+      providerResult: `${internalResult.provider || 'UNKNOWN'}_${internalResult.errorCode || 'ERROR'}`,
       ip,
       email: validation.data.email,
       limitCategory: isConcurrencyLimit ? 'concurrency' : null,
@@ -233,9 +281,9 @@ export default async function handler(req, res) {
     }
 
     const status =
-      sendResult.errorCode === 'PROVIDER_TIMEOUT'
+      internalResult.errorCode === 'PROVIDER_TIMEOUT'
         ? 504
-        : sendResult.errorCode === 'PROVIDER_CREDENTIALS_MISSING'
+        : internalResult.errorCode === 'PROVIDER_CREDENTIALS_MISSING'
         ? 503
         : 502
 
@@ -246,20 +294,55 @@ export default async function handler(req, res) {
     })
   }
 
-  // 7. Éxito verificado -> Registrar evento legítimo aceptado
+  // 7. PRIORIDAD 2: Confirmación Automática al Visitante (solo tras aceptación del correo interno)
+  let autoReplyStatus = 'SKIPPED'
+  const autoReplyQuota = evaluateAndConsumeAutoReplyQuota({
+    email: validation.data.email,
+  })
+
+  if (!autoReplyQuota.allowed) {
+    // No enviar respuesta automática repetida en ventana corta para proteger a terceros
+    autoReplyStatus = autoReplyQuota.reason
+  } else {
+    const autoReplyRes = await dispatchVisitorAutoReplyEmail(
+      {
+        nombre: validation.data.nombre,
+        email: validation.data.email,
+      },
+      { qaMockMode }
+    )
+
+    if (autoReplyRes.ok && autoReplyRes.providerAccepted) {
+      autoReplyStatus = 'SENT'
+    } else {
+      // Si falla la respuesta automática: NO repetir la notificación interna, registrar el error
+      // y guardar ticket idempotente para permitir reintentar la confirmación por separado.
+      autoReplyStatus = 'FAILED_PENDING_RETRY'
+      releaseAutoReplyCooldownOnFailure({ cooldownKey: autoReplyQuota.cooldownKey })
+      registerFailedAutoReplyTicket({
+        requestId,
+        nombre: validation.data.nombre,
+        email: validation.data.email,
+        errorCode: autoReplyRes.errorCode || 'AUTOREPLY_FAILED',
+      })
+    }
+  }
+
   recordContactSecurityEvent({
     requestId,
     validationResult: 'PASS',
     accepted: true,
-    technicalReason: 'OK',
-    providerResult: `${sendResult.provider}_OK`,
+    technicalReason: autoReplyStatus === 'FAILED_PENDING_RETRY' ? 'INTERNAL_OK_AUTOREPLY_FAILED' : 'OK',
+    providerResult: `${internalResult.provider}_INTERNAL_OK_AUTOREPLY_${autoReplyStatus}`,
     ip,
     email: validation.data.email,
   })
 
+  // Mostrar éxito al visitante cuando su consulta fue aceptada para entrega a GAR, aunque falle la respuesta automática
   return res.status(200).json({
     ok: true,
     providerAccepted: true,
+    autoReplyStatus,
     requestId,
   })
 }

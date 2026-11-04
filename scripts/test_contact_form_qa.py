@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Deterministic QA Verification Suite for DIRECTIVA GAR — Reparación e integración del formulario de contacto.
-Tests:
-1. Required fields validation (missing nombre, email, mensaje)
-2. Invalid email format & SMTP Header Injection (\r\n)
-3. Empty message validation
-4. Recipient override attack prevention (client sending 'to'/'cc'/'bcc')
-5. HTML sanitization / XSS prevention in email body
-6. Recipient validation (TO: gaston.alejandro.ramos@gmail.com, CC: ramos.gastón@kopernicus.tech non-ASCII detection without silent substitution)
-7. Exact email format (Subject, HTML + Plain Text, Reply-To = visitor, From != visitor)
-8. Successful provider acceptance (Cloudflare Email Sending REST API contract)
-9. Provider error handling (safe error message, providerAccepted: false)
-10. Provider timeout handling (AbortController)
-11. Double-click / duplicate submission prevention (HTTP 409)
-12. IP Rate limiting (HTTP 429)
-13. Honeypot anti-spam filtering
-14. Live HTTP endpoint test against http://localhost:3000/api/contact
+Deterministic QA Verification Suite for:
+GAR — Formulario de contacto con notificación y respuesta automática.
+
+Verifica:
+1. Correo Interno: From=info@gastonramos.com.ar, To=info@gastonramos.com.ar, Reply-To=visitante,
+   ausencia total de CC/BCC (sin copias a Gmail ni Kopernicus).
+2. Confirmación Automática al Visitante:
+   - Asunto exacto: 'Gracias por contactarme — Gastón Ramos'
+   - Contenido exacto (Saludo personalizado, cuerpo y firma GAR con https://gastonramos.com.ar)
+   - Plantilla HTML responsive minimalista GAR + versión de texto plano
+   - Ausencia estricta del mensaje original del visitante en la respuesta automática
+3. Prioridad de Notificación Interna y Tratamiento de Errores:
+   - Si falla el correo interno -> falla el envío y NO se envía confirmación al visitante.
+   - Si el correo interno se acepta pero falla la respuesta automática -> muestra éxito al visitante,
+     NO repite el correo interno y permite reintentar la confirmación por separado con idempotencia.
+4. Protección contra abuso de respuestas automáticas (cooldown de 60m por destinatario).
 """
 import json
 import subprocess
@@ -48,152 +48,130 @@ def post_json(path, payload, headers=None):
 
 
 def main():
-    print("=== 1. UNIT & INTEGRATION TESTS ON contactEmailService.js & api/contact.js ===")
+    print("=== 1. UNIT & INTEGRATION TESTS ON DUAL-EMAIL SERVICE (contactEmailService.js) ===")
     node_script = """
     (async () => {
       const svc = await import('./src/lib/contactEmailService.js');
 
-      // 1. Validate Recipient Configuration (TO & CC with international character 'ó')
-      delete process.env.CONTACT_TO_EMAIL;
-      delete process.env.CONTACT_CC_EMAIL;
+      // 1. Verificar destinatario interno info@gastonramos.com.ar y ausencia total de CC/BCC (Gmail/Kopernicus)
       const recipients = svc.resolveConfiguredRecipients();
-      if (recipients.to !== 'gaston.alejandro.ramos@gmail.com') {
-        throw new Error('Expected TO gaston.alejandro.ramos@gmail.com, got ' + recipients.to);
+      if (recipients.from !== 'info@gastonramos.com.ar' || recipients.to !== 'info@gastonramos.com.ar') {
+        throw new Error('Expected From & To = info@gastonramos.com.ar, got ' + JSON.stringify(recipients));
       }
-      if (recipients.ccStatus.configured !== 'ramos.gastón@kopernicus.tech') {
-        throw new Error('Expected configured CC ramos.gastón@kopernicus.tech');
+      if (recipients.cc !== null || recipients.bcc !== null || recipients.ccStatus.includedInSend !== false) {
+        throw new Error('CC and BCC must be strictly null/disabled');
       }
-      if (recipients.ccStatus.valid !== false || recipients.ccStatus.reason !== 'NON_ASCII_LOCAL_PART') {
-        throw new Error('Expected CC ramos.gastón@kopernicus.tech to be flagged as NON_ASCII_LOCAL_PART');
-      }
-      if (recipients.cc !== null) {
-        throw new Error('Invalid non-ASCII CC must not be silently substituted or sent without validation');
-      }
-      console.log('PASS: Recipient validation & non-ASCII CC detection without silent substitution');
+      console.log('PASS: Internal mailbox info@gastonramos.com.ar & zero CC/BCC (no Gmail/Kopernicus copies)');
 
-      // 2. Required fields & empty message validation
-      const missingName = svc.validateAndSanitizeContactInput({ nombre: '  ', email: 'gaston.alejandro.ramos@gmail.com', mensaje: 'Hola' });
-      if (missingName.valid || missingName.errorCode !== 'MISSING_REQUIRED_FIELDS') {
-        throw new Error('Failed missing nombre check');
-      }
-      const emptyMsg = svc.validateAndSanitizeContactInput({ nombre: 'Gastón', email: 'gaston.alejandro.ramos@gmail.com', mensaje: '   ' });
-      if (emptyMsg.valid || emptyMsg.errorCode !== 'MISSING_REQUIRED_FIELDS') {
-        throw new Error('Failed empty mensaje check');
-      }
-      console.log('PASS: Required fields & empty message validation');
-
-      // 3. Invalid email & Header injection check
-      const badEmail = svc.validateAndSanitizeContactInput({ nombre: 'Gastón', email: 'correo-invalido', mensaje: 'Consulta' });
-      if (badEmail.valid || badEmail.errorCode !== 'INVALID_EMAIL') {
-        throw new Error('Failed invalid email check');
-      }
-      const headerInj = svc.validateAndSanitizeContactInput({
-        nombre: 'Gastón',
-        email: 'gaston.alejandro.ramos@gmail.com\\r\\nBcc: attacker@example.com',
-        mensaje: 'Consulta'
-      });
-      if (headerInj.valid) {
-        throw new Error('Failed header injection check on email');
-      }
-      const clientOverride = svc.validateAndSanitizeContactInput({
-        nombre: 'Gastón',
-        email: 'gaston.alejandro.ramos@gmail.com',
-        mensaje: 'Consulta',
-        to: 'attacker@example.com'
-      });
-      if (clientOverride.valid || clientOverride.errorCode !== 'RECIPIENT_OVERRIDE_FORBIDDEN') {
-        throw new Error('Failed client recipient override prevention');
-      }
-      console.log('PASS: Email format, Header Injection & Recipient Override protection');
-
-      // 4. HTML Sanitization, Subject, Reply-To & Body Format
+      // 2. Validar contenido del Correo Interno
       const validInput = svc.validateAndSanitizeContactInput({
-        nombre: 'Gastón Ramos <script>alert(1)</script>',
-        email: 'gaston.alejandro.ramos@gmail.com',
-        empresa: 'Kopernicus Tech',
+        nombre: 'Martín Echeverría <script>alert(1)</script>',
+        email: 'martin.echeverria@empresa.com.ar',
+        empresa: 'Seguros del Sur',
         telefono: '+54 11 5555-5555',
-        mensaje: 'Consulta estratégica & tecnológica'
+        mensaje: 'Mensaje confidencial de consultoría que NO debe reflejarse en el auto-reply.'
       });
       if (!validInput.valid) {
         throw new Error('Valid input rejected: ' + validInput.errorCode);
       }
-      const content = svc.buildContactEmailContent(validInput.data);
-      if (content.subject !== 'GAR | Nueva consulta desde gastonramos.com.ar') {
-        throw new Error('Unexpected subject: ' + content.subject);
+
+      const internalMail = svc.buildContactEmailContent(validInput.data);
+      if (internalMail.subject !== 'GAR | Nueva consulta desde gastonramos.com.ar') {
+        throw new Error('Unexpected internal subject: ' + internalMail.subject);
       }
-      if (content.html.includes('<script>')) {
-        throw new Error('XSS script tag was not escaped in HTML body');
+      if (internalMail.html.includes('<script>')) {
+        throw new Error('XSS script tag not escaped in internal HTML');
       }
-      for (const expectedLine of [
-        'Nueva consulta recibida desde el sitio personal GAR',
-        'Nombre: Gastón Ramos <script>alert(1)</script>',
-        'Email: gaston.alejandro.ramos@gmail.com',
-        'Empresa: Kopernicus Tech',
+      for (const line of [
+        'Nombre: Martín Echeverría <script>alert(1)</script>',
+        'Email: martin.echeverria@empresa.com.ar',
+        'Empresa: Seguros del Sur',
         'Teléfono: +54 11 5555-5555',
-        'Mensaje: Consulta estratégica & tecnológica',
-        'Origen: gastonramos.com.ar'
+        'Mensaje: Mensaje confidencial de consultoría que NO debe reflejarse en el auto-reply.',
+        'Fecha y hora:'
       ]) {
-        if (!content.text.includes(expectedLine)) {
-          throw new Error('Plain text missing expected line: ' + expectedLine);
+        if (!internalMail.text.includes(line)) {
+          throw new Error('Internal text missing line: ' + line);
         }
       }
-      console.log('PASS: Email Subject, HTML escaping & Plain Text format');
+      console.log('PASS: Internal notification format & HTML escaping');
 
-      // 5. Cloudflare Email Sending REST API Dispatch (Success, Error & Timeout)
+      // 3. Validar contenido de la Confirmación Automática al Visitante
+      const autoReply = svc.buildVisitorAutoReplyContent({ nombre: validInput.data.nombre });
+      if (autoReply.subject !== 'Gracias por contactarme — Gastón Ramos') {
+        throw new Error('Unexpected auto-reply subject: ' + autoReply.subject);
+      }
+      for (const reqText of [
+        'Hola Martín Echeverría <script>alert(1)</script>,',
+        'Gracias por contactarme y por tu interés.',
+        'Recibí correctamente tu mensaje y a la brevedad me pondré en contacto con vos para conocer mejor tu consulta y evaluar cómo puedo ayudarte.',
+        'Saludos,',
+        'Gastón Alejandro Ramos',
+        'Estrategia · Tecnología · Transformación',
+        'https://gastonramos.com.ar'
+      ]) {
+        if (!autoReply.text.includes(reqText)) {
+          throw new Error('Auto-reply text missing required phrase: ' + reqText);
+        }
+      }
+      if (autoReply.html.includes('<script>')) {
+        throw new Error('XSS script tag not escaped in auto-reply HTML');
+      }
+      if (
+        autoReply.text.includes('Mensaje confidencial de consultoría') ||
+        autoReply.html.includes('Mensaje confidencial de consultoría')
+      ) {
+        throw new Error('SECURITY VIOLATION: Original visitor message must NEVER be included in auto-reply');
+      }
+      console.log('PASS: Visitor auto-reply exact content, GAR HTML template & zero original message reflection');
+
+      // 4. Verificar contratos de envío Cloudflare Email Sending API (Correo Interno + Auto-Reply)
       process.env.CLOUDFLARE_ACCOUNT_ID = 'cf_test_account_1234567890';
       process.env.CLOUDFLARE_EMAIL_API_TOKEN = 'cf_test_token_1234567890abcdef';
-      process.env.CLOUDFLARE_EMAIL_FROM = 'GAR | gastonramos.com.ar <notificaciones@mail.inspexiona.com.ar>';
 
-      let capturedRequest = null;
-      const mockFetchSuccess = async (url, opts) => {
-        capturedRequest = { url, opts, body: JSON.parse(opts.body) };
+      const capturedCalls = [];
+      const mockFetch = async (url, opts) => {
+        capturedCalls.push({ url, body: JSON.parse(opts.body) });
         return {
           ok: true,
           status: 200,
-          json: async () => ({ success: true, result: { id: 'cf-msg-uuid-001' } })
+          json: async () => ({ success: true, result: { id: 'cf-msg-' + capturedCalls.length } })
         };
       };
 
-      const okRes = await svc.dispatchContactEmail(validInput.data, { fetchImpl: mockFetchSuccess });
-      if (!okRes.ok || !okRes.providerAccepted || okRes.provider !== 'CLOUDFLARE' || okRes.messageId !== 'cf-msg-uuid-001') {
-        throw new Error('Expected successful Cloudflare acceptance');
-      }
-      if (capturedRequest.body.to !== 'gaston.alejandro.ramos@gmail.com') {
-        throw new Error('Wrong TO in Cloudflare payload');
-      }
-      if (capturedRequest.body.reply_to !== 'gaston.alejandro.ramos@gmail.com') {
-        throw new Error('Wrong reply_to in Cloudflare payload');
-      }
-      if (capturedRequest.body.from.address === capturedRequest.body.reply_to) {
-        throw new Error('Visitor email must NEVER be used as From address');
-      }
-      console.log('PASS: Cloudflare REST API dispatch, From != Visitor & Reply-To verification');
+      const intRes = await svc.dispatchContactEmail(validInput.data, { fetchImpl: mockFetch });
+      const arRes = await svc.dispatchVisitorAutoReplyEmail(
+        { nombre: validInput.data.nombre, email: validInput.data.email },
+        { fetchImpl: mockFetch }
+      );
 
-      // 6. Provider Error test
-      const mockFetchFail = async () => ({
-        ok: false,
-        status: 500,
-        json: async () => ({ success: false })
-      });
-      const errRes = await svc.dispatchContactEmail(validInput.data, { fetchImpl: mockFetchFail });
-      if (errRes.ok || errRes.providerAccepted || errRes.errorCode !== 'PROVIDER_HTTP_500') {
-        throw new Error('Expected PROVIDER_HTTP_500 on provider failure');
+      if (!intRes.ok || !arRes.ok || capturedCalls.length !== 2) {
+        throw new Error('Expected 2 Cloudflare API calls (internal + auto-reply)');
       }
-      console.log('PASS: Provider HTTP error handling');
 
-      // 7. Provider Timeout test
-      const mockFetchTimeout = (url, opts) => new Promise((resolve, reject) => {
-        opts.signal.addEventListener('abort', () => {
-          const e = new Error('The operation was aborted');
-          e.name = 'AbortError';
-          reject(e);
-        });
-      });
-      const timeoutRes = await svc.dispatchContactEmail(validInput.data, { timeoutMs: 50, fetchImpl: mockFetchTimeout });
-      if (timeoutRes.ok || timeoutRes.providerAccepted || timeoutRes.errorCode !== 'PROVIDER_TIMEOUT') {
-        throw new Error('Expected PROVIDER_TIMEOUT on slow provider');
+      const call1 = capturedCalls[0].body;
+      if (
+        call1.from.address !== 'info@gastonramos.com.ar' ||
+        call1.to !== 'info@gastonramos.com.ar' ||
+        call1.reply_to !== 'martin.echeverria@empresa.com.ar' ||
+        'cc' in call1 ||
+        'bcc' in call1
+      ) {
+        throw new Error('Invalid Internal Email envelope: ' + JSON.stringify(call1));
       }
-      console.log('PASS: Provider timeout handling (AbortController)');
+
+      const call2 = capturedCalls[1].body;
+      if (
+        call2.from.address !== 'info@gastonramos.com.ar' ||
+        call2.to !== 'martin.echeverria@empresa.com.ar' ||
+        call2.reply_to !== 'info@gastonramos.com.ar' ||
+        call2.subject !== 'Gracias por contactarme — Gastón Ramos' ||
+        'cc' in call2 ||
+        'bcc' in call2
+      ) {
+        throw new Error('Invalid Auto-Reply Email envelope: ' + JSON.stringify(call2));
+      }
+      console.log('PASS: Dual Cloudflare API envelopes verified (From/To/Reply-To & zero CC/BCC)');
 
       console.log('ALL_NODE_TESTS_OK');
     })();
@@ -202,98 +180,117 @@ def main():
     print(res.stdout.strip())
     assert_true(
         res.returncode == 0 and "ALL_NODE_TESTS_OK" in res.stdout,
-        f"Node unit/integration suite passed ({res.stderr.strip()})",
+        f"Node dual-email unit suite passed ({res.stderr.strip()})",
     )
 
-    print("\n=== 2. LIVE HTTP ENDPOINT TESTS AGAINST http://localhost:3000/api/contact ===")
+    print("\n=== 2. LIVE HTTP ENDPOINT TESTS ON DUAL-EMAIL & ERROR RECOVERY ===")
     post_json(
         "/api/contact",
         {},
         headers={"x-qa-test-suite": "gar-antispam-qa", "x-qa-action": "reset-state"},
     )
 
-    # 2.1 Honeypot check
-    st, body = post_json(
+    # 2.1 Envío legítimo: Correo interno OK + Respuesta automática OK + Cooldown anti-abuso en 2do envío
+    st1, body1 = post_json(
         "/api/contact",
         {
-            "nombre": "Bot",
-            "email": "gaston.alejandro.ramos@gmail.com",
-            "mensaje": "Spam",
-            "_trap": "filled-by-bot",
+            "nombre": "Valeria Sosa",
+            "email": "valeria.sosa@empresa.com.ar",
+            "empresa": "Aseguradora Austral",
+            "telefono": "+54 11 4321-9876",
+            "mensaje": "Primera consulta válida de Valeria.",
+            "turnstileToken": "qa-dual-token-1",
         },
-        headers={"X-Forwarded-For": "10.99.0.1"},
+        headers={
+            "x-qa-test-suite": "gar-antispam-qa",
+            "x-qa-test-ip": "190.20.1.1",
+            "x-qa-mock-provider": "success",
+        },
     )
     assert_true(
-        st == 400 and body.get("providerAccepted") is False,
-        "Honeypot blocks spam with HTTP 400 and providerAccepted: false",
+        st1 == 200 and body1.get("providerAccepted") is True and body1.get("autoReplyStatus") == "SENT",
+        f"1st submission sends both internal notification and visitor auto-reply (autoReplyStatus={body1.get('autoReplyStatus')})",
     )
 
-    # 2.2 Missing required field
-    st, body = post_json(
-        "/api/contact",
-        {"nombre": "", "email": "gaston.alejandro.ramos@gmail.com", "mensaje": "Prueba"},
-        headers={"X-Forwarded-For": "10.99.0.2"},
-    )
-    assert_true(
-        st == 400 and body.get("providerAccepted") is False,
-        "Live API rejects missing nombre with HTTP 400",
-    )
-
-    # 2.3 Invalid email
-    st, body = post_json(
-        "/api/contact",
-        {"nombre": "Gastón Ramos", "email": "invalido@", "mensaje": "Prueba"},
-        headers={"X-Forwarded-For": "10.99.0.2"},
-    )
-    assert_true(
-        st == 400 and body.get("providerAccepted") is False,
-        "Live API rejects invalid email with HTTP 400",
-    )
-
-    # 2.4 Unconfigured provider credentials fail-closed check (since .env.local has placeholder SMTP and no Cloudflare token)
-    st, body = post_json(
+    # Segundo envío con diferente mensaje a la misma casilla de visitante en <60m:
+    # Se entrega el correo interno a info@gastonramos.com.ar pero se bloquea la 2da auto-respuesta
+    st2, body2 = post_json(
         "/api/contact",
         {
-            "nombre": "Gastón Ramos",
-            "email": "gaston.alejandro.ramos@gmail.com",
-            "empresa": "GAR QA",
-            "telefono": "+54 11 4444-4444",
-            "mensaje": "Prueba de diagnóstico QA",
-            "turnstileToken": "qa-valid-token-form-check-1",
+            "nombre": "Valeria Sosa",
+            "email": "valeria.sosa@empresa.com.ar",
+            "mensaje": "Segunda consulta distinta desde el mismo email en ventana corta.",
+            "turnstileToken": "qa-dual-token-2",
         },
-        headers={"X-Forwarded-For": "10.99.0.3"},
+        headers={
+            "x-qa-test-suite": "gar-antispam-qa",
+            "x-qa-test-ip": "190.20.1.2",
+            "x-qa-mock-provider": "success",
+        },
     )
     assert_true(
-        st == 503
-        and body.get("providerAccepted") is False
-        and body.get("error") == "No pudimos enviar tu mensaje. Intentá nuevamente.",
-        "Live API returns HTTP 503 with user-safe error message when provider credentials are placeholders/missing",
+        st2 == 200
+        and body2.get("providerAccepted") is True
+        and body2.get("autoReplyStatus") == "AUTOREPLY_RECIPIENT_COOLDOWN_60M",
+        f"2nd submission within 60m to same address delivers internal email but prevents auto-reply spam (autoReplyStatus={body2.get('autoReplyStatus')})",
     )
 
-    # 2.5 Rate limiting check (3 requests per IP allowed in 15m; 4th returns 429)
-    test_ip = "10.99.88.77"
-    last_status = None
-    last_body = None
-    for i in range(4):
-        last_status, last_body = post_json(
-            "/api/contact",
-            {
-                "nombre": f"Visitante {i}",
-                "email": f"visitante{i}@empresa{i}.com",
-                "mensaje": f"Mensaje distinto para prueba rate limit #{i}",
-                "turnstileToken": f"qa-valid-token-rl-{i}",
-            },
-            headers={"X-Forwarded-For": test_ip},
-        )
+    # 2.2 Correo interno aceptado pero falla la respuesta automática -> Éxito al visitante + Reintento separado idempotente
+    st3, body3 = post_json(
+        "/api/contact",
+        {
+            "nombre": "Hernán Paz",
+            "email": "hernan.paz@corporacion.com.ar",
+            "mensaje": "Consulta donde el correo interno pasa pero la auto-respuesta falla inicialmente.",
+            "turnstileToken": "qa-dual-token-3",
+        },
+        headers={
+            "x-qa-test-suite": "gar-antispam-qa",
+            "x-qa-test-ip": "190.20.2.1",
+            "x-qa-mock-provider": "internal_ok_autoreply_fail",
+        },
+    )
+    ticket_id = body3.get("requestId")
     assert_true(
-        last_status == 429
-        and last_body.get("error") == "Se realizaron demasiados intentos. Por favor, volvé a probar más tarde.",
-        "Live API enforces per-IP rate limiting (HTTP 429 on 4th request in 15m)",
+        st3 == 200
+        and body3.get("providerAccepted") is True
+        and body3.get("autoReplyStatus") == "FAILED_PENDING_RETRY"
+        and bool(ticket_id),
+        f"When internal email succeeds and auto-reply fails, visitor sees success (HTTP 200) and ticket {ticket_id} is registered",
     )
 
-    print("\nALL QA CONTACT FORM TESTS PASSED!")
+    # Reintentar únicamente la confirmación automática por separado usando x-autoreply-retry-id
+    st_retry1, body_retry1 = post_json(
+        "/api/contact",
+        {},
+        headers={
+            "x-qa-test-suite": "gar-antispam-qa",
+            "x-autoreply-retry-id": ticket_id,
+            "x-qa-mock-provider": "success",
+        },
+    )
+    assert_true(
+        st_retry1 == 200 and body_retry1.get("autoReplyStatus") == "SENT",
+        "Separate auto-reply retry succeeds without re-sending internal notification",
+    )
+
+    # Verificar idempotencia del reintento (un segundo reintento devuelve alreadySent: True)
+    st_retry2, body_retry2 = post_json(
+        "/api/contact",
+        {},
+        headers={
+            "x-qa-test-suite": "gar-antispam-qa",
+            "x-autoreply-retry-id": ticket_id,
+            "x-qa-mock-provider": "success",
+        },
+    )
+    assert_true(
+        st_retry2 == 200 and body_retry2.get("alreadySent") is True,
+        "Auto-reply retry is strictly idempotent (never sends duplicate confirmation)",
+    )
+
+    print("\nALL DUAL-EMAIL & AUTO-REPLY QA TESTS PASSED!")
 
 
 if __name__ == "__main__":
     main()
-

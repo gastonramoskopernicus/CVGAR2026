@@ -2,9 +2,21 @@ import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 
 /**
- * Servicio determinista de validación, seguridad y envío de correo para el formulario de contacto GAR.
- * Reutiliza el patrón arquitectónico de CloudflareEmailProvider implementado en InspeXiona
- * (`https://api.cloudflare.com/client/v4/accounts/{accountId}/email/sending/send`).
+ * Servicio determinista de validación, seguridad y despacho de doble correo para el
+ * formulario de contacto GAR (gastonramos.com.ar):
+ *
+ * 1. Correo Interno (Prioridad 1):
+ *    - From: info@gastonramos.com.ar
+ *    - To:   info@gastonramos.com.ar
+ *    - Reply-To: email validado del visitante
+ *    - Sin CC ni BCC (sin copias a Gmail ni Kopernicus)
+ *
+ * 2. Confirmación Automática al Visitante (Prioridad 2, Desacoplada):
+ *    - From: info@gastonramos.com.ar
+ *    - To:   email validado del visitante
+ *    - Reply-To: info@gastonramos.com.ar
+ *    - Asunto: Gracias por contactarme — Gastón Ramos
+ *    - Sin incluir el mensaje original del visitante, sin enlaces promocionales ni adjuntos.
  */
 
 export const FIELD_LIMITS = {
@@ -17,6 +29,14 @@ export const FIELD_LIMITS = {
 
 export const MAX_PAYLOAD_BYTES = 16 * 1024 // 16 KB máximo total por solicitud
 export const MAX_CONCURRENT_DISPATCHES = Number(process.env.CONTACT_MAX_CONCURRENCY || 3)
+
+export const INTERNAL_MAILBOX = 'info@gastonramos.com.ar'
+export const INTERNAL_FROM_NAME = 'GAR | gastonramos.com.ar'
+export const AUTOREPLY_FROM_NAME = 'Gastón Alejandro Ramos'
+export const EMAIL_SUBJECT = 'GAR | Nueva consulta desde gastonramos.com.ar'
+export const AUTOREPLY_SUBJECT = 'Gracias por contactarme — Gastón Ramos'
+export const EMAIL_ORIGIN = 'gastonramos.com.ar'
+export const CANONICAL_SITE_URL = 'https://gastonramos.com.ar'
 
 const FORBIDDEN_OVERRIDE_FIELDS = [
   'to',
@@ -36,12 +56,6 @@ const FORBIDDEN_OVERRIDE_FIELDS = [
 ]
 
 const FORBIDDEN_ATTACHMENT_FIELDS = ['attachments', 'attachment', 'files', 'file', 'blob']
-
-
-export const DEFAULT_TO_EMAIL = 'gaston.alejandro.ramos@gmail.com'
-export const DEFAULT_CC_EMAIL = 'ramos.gastón@kopernicus.tech'
-export const EMAIL_SUBJECT = 'GAR | Nueva consulta desde gastonramos.com.ar'
-export const EMAIL_ORIGIN = 'gastonramos.com.ar'
 
 /**
  * Escapa caracteres HTML especiales para prevenir XSS / inyección HTML en clientes de correo.
@@ -63,8 +77,7 @@ export function sanitizeHeaderValue(value) {
 }
 
 /**
- * Valida una dirección de email según RFC 5321 / RFC 5322 y verifica si contiene
- * caracteres internacionales no-ASCII en la parte local o dominio.
+ * Valida una dirección de email según RFC 5321 / RFC 5322 ASCII estricto.
  */
 export function validateEmailAddress(rawEmail) {
   if (typeof rawEmail !== 'string') {
@@ -80,7 +93,6 @@ export function validateEmailAddress(rawEmail) {
     return { valid: false, reason: 'TOO_LONG' }
   }
 
-  // Protección contra inyección de encabezados SMTP (CR / LF / NULL)
   if (/[\r\n\0]/.test(trimmed)) {
     return { valid: false, reason: 'HEADER_INJECTION_DETECTED' }
   }
@@ -95,13 +107,11 @@ export function validateEmailAddress(rawEmail) {
     return { valid: false, reason: 'INVALID_PART_LENGTH' }
   }
 
-  // Detectar caracteres no-ASCII (ej. tilde 'ó' en 'ramos.gastón@kopernicus.tech')
   if (/[^\x00-\x7F]/.test(localPart)) {
     return {
       valid: false,
       reason: 'NON_ASCII_LOCAL_PART',
-      detail:
-        'La parte local contiene caracteres internacionales no-ASCII (ej. tilde), no admitidos por RFC 5321/5322 estándar ni Cloudflare Email API sin SMTPUTF8.',
+      detail: 'La parte local contiene caracteres no-ASCII.',
     }
   }
 
@@ -109,11 +119,10 @@ export function validateEmailAddress(rawEmail) {
     return {
       valid: false,
       reason: 'NON_ASCII_DOMAIN',
-      detail: 'El dominio contiene caracteres no-ASCII sin codificación Punycode.',
+      detail: 'El dominio contiene caracteres no-ASCII.',
     }
   }
 
-  // Validación estricta ASCII RFC 5322
   const asciiEmailRegex =
     /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
 
@@ -125,33 +134,25 @@ export function validateEmailAddress(rawEmail) {
 }
 
 /**
- * Resuelve y valida los destinatarios configurados del lado servidor.
- * Nunca permite que el frontend determine o sobrescriba destinatarios.
- * No sustituye automáticamente direcciones inválidas (ej. 'ramos.gastón@kopernicus.tech').
+ * Resuelve la configuración fija de destinatario y remitente interno (`info@gastonramos.com.ar`),
+ * garantizando ausencia total de CC y BCC.
  */
 export function resolveConfiguredRecipients() {
-  const configuredTo = (process.env.CONTACT_TO_EMAIL || DEFAULT_TO_EMAIL).trim()
-  const configuredCc = (
-    process.env.CONTACT_CC_EMAIL !== undefined ? process.env.CONTACT_CC_EMAIL : DEFAULT_CC_EMAIL
-  ).trim()
-
-  const toCheck = validateEmailAddress(configuredTo)
-  const ccCheck = configuredCc ? validateEmailAddress(configuredCc) : { valid: false, reason: 'NONE' }
-
   return {
-    to: toCheck.valid ? toCheck.raw : DEFAULT_TO_EMAIL,
+    from: INTERNAL_MAILBOX,
+    to: INTERNAL_MAILBOX,
+    cc: null,
+    bcc: null,
     toStatus: {
-      configured: configuredTo,
-      valid: toCheck.valid,
-      reason: toCheck.reason || 'OK',
+      configured: INTERNAL_MAILBOX,
+      valid: true,
+      reason: 'OK',
     },
-    cc: ccCheck.valid ? ccCheck.raw : null,
     ccStatus: {
-      configured: configuredCc,
-      valid: ccCheck.valid,
-      reason: ccCheck.reason || 'OK',
-      detail: ccCheck.detail || null,
-      includedInSend: ccCheck.valid,
+      configured: null,
+      valid: false,
+      reason: 'DISABLED_BY_DIRECTIVE',
+      includedInSend: false,
     },
   }
 }
@@ -164,7 +165,6 @@ export function validateAndSanitizeContactInput(body = {}) {
     return { valid: false, errorCode: 'INVALID_PAYLOAD' }
   }
 
-  // Verificar tamaño total de la solicitud (máximo 16 KB)
   try {
     const byteLength = Buffer.byteLength(JSON.stringify(body), 'utf8')
     if (byteLength > MAX_PAYLOAD_BYTES) {
@@ -174,14 +174,12 @@ export function validateAndSanitizeContactInput(body = {}) {
     return { valid: false, errorCode: 'INVALID_PAYLOAD' }
   }
 
-  // Rechazar adjuntos (no se aceptan archivos adjuntos)
   for (const field of FORBIDDEN_ATTACHMENT_FIELDS) {
     if (field in body && body[field] !== undefined && body[field] !== null) {
       return { valid: false, errorCode: 'ATTACHMENTS_FORBIDDEN' }
     }
   }
 
-  // Rechazar cualquier intento de inyectar destinatarios, remitentes, plantillas o credenciales desde el cliente
   for (const field of FORBIDDEN_OVERRIDE_FIELDS) {
     if (field in body) {
       return { valid: false, errorCode: 'RECIPIENT_OVERRIDE_FORBIDDEN' }
@@ -194,7 +192,6 @@ export function validateAndSanitizeContactInput(body = {}) {
   const rawTelefono = typeof body.telefono === 'string' ? body.telefono.trim() : ''
   const rawMensaje = typeof body.mensaje === 'string' ? body.mensaje.trim() : ''
 
-  // Detectar caracteres de control o saltos de línea (Header Injection CRLF) ANTES de cualquier otra validación
   if (
     /[\r\n\0]/.test(rawNombre) ||
     /[\r\n\0]/.test(rawEmail) ||
@@ -252,7 +249,7 @@ export function validateAndSanitizeContactInput(body = {}) {
 }
 
 /**
- * Construye el correo en formato HTML (identidad GAR) y alternativa de texto plano.
+ * Construye el Correo 1 (Notificación interna a info@gastonramos.com.ar).
  */
 export function buildContactEmailContent(data) {
   const safeNombre = escapeHtml(data.nombre)
@@ -331,19 +328,63 @@ export function buildContactEmailContent(data) {
   return { subject: EMAIL_SUBJECT, text, html }
 }
 
-function parseFromHeader(fromVal) {
-  const raw = String(fromVal || '').trim()
-  const match = raw.match(/^(.*)<([^>]+)>$/)
-  if (match) {
-    return {
-      name: match[1].trim().replace(/^["']|["']$/g, '') || 'GAR | gastonramos.com.ar',
-      address: match[2].trim(),
-    }
-  }
-  return {
-    name: process.env.CLOUDFLARE_EMAIL_FROM_NAME || 'GAR | gastonramos.com.ar',
-    address: raw || 'notificaciones@mail.inspexiona.com.ar',
-  }
+/**
+ * Construye el Correo 2 (Confirmación automática personalizada al visitante).
+ * Regla de seguridad: NUNCA incluye el mensaje original del visitante ni enlaces promocionales.
+ */
+export function buildVisitorAutoReplyContent({ nombre }) {
+  const cleanNombre = sanitizeHeaderValue(nombre || 'Visitante')
+  const safeNombre = escapeHtml(cleanNombre)
+
+  const text = [
+    `Hola ${cleanNombre},`,
+    '',
+    'Gracias por contactarme y por tu interés.',
+    '',
+    'Recibí correctamente tu mensaje y a la brevedad me pondré en contacto con vos para conocer mejor tu consulta y evaluar cómo puedo ayudarte.',
+    '',
+    'Saludos,',
+    'Gastón Alejandro Ramos',
+    'Estrategia · Tecnología · Transformación',
+    CANONICAL_SITE_URL,
+  ].join('\n')
+
+  const html = `<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(AUTOREPLY_SUBJECT)}</title>
+</head>
+<body style="margin: 0; padding: 28px 14px; background-color: #0d0e11; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f5f2eb;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; margin: 0 auto; background-color: #14161b; border: 1px solid #262932; border-radius: 14px; overflow: hidden;">
+    <tr>
+      <td style="padding: 24px 32px; background-color: #0d0e11; border-bottom: 2px solid #f5b727;">
+        <span style="font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: #f5f2eb;">GAR<span style="color: #f5b727;">.</span></span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px 32px 28px 32px; font-size: 15px; line-height: 1.7; color: #e5e7eb;">
+        <p style="margin: 0 0 18px 0; font-size: 16px; font-weight: 600; color: #f5f2eb;">Hola ${safeNombre},</p>
+        <p style="margin: 0 0 16px 0; color: #d1d5db;">Gracias por contactarme y por tu interés.</p>
+        <p style="margin: 0 0 26px 0; color: #d1d5db;">Recibí correctamente tu mensaje y a la brevedad me pondré en contacto con vos para conocer mejor tu consulta y evaluar cómo puedo ayudarte.</p>
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top: 1px solid #262932; padding-top: 20px;">
+          <tr>
+            <td style="padding-top: 20px;">
+              <p style="margin: 0 0 6px 0; font-size: 14px; color: #9ca3af;">Saludos,</p>
+              <p style="margin: 0 0 4px 0; font-size: 16px; font-weight: 700; color: #f5f2eb;">Gastón Alejandro Ramos</p>
+              <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #f5b727;">Estrategia &middot; Tecnología &middot; Transformación</p>
+              <p style="margin: 0; font-size: 13px;"><a href="${CANONICAL_SITE_URL}" style="color: #d1d5db; text-decoration: none;">${CANONICAL_SITE_URL}</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+  return { subject: AUTOREPLY_SUBJECT, text, html }
 }
 
 function isPlaceholderCredential(val) {
@@ -363,9 +404,236 @@ export function getActiveDispatchCount() {
 }
 
 /**
- * Envía el correo utilizando el patrón CloudflareEmailProvider de InspeXiona
- * (`https://api.cloudflare.com/client/v4/accounts/{accountId}/email/sending/send`).
- * Incluye control de concurrencia, timeout (`AbortController`), Reply-To seguro al visitante y From institucional.
+ * Función interna de bajo nivel que despacha un único mensaje de correo (sin CC ni BCC)
+ * priorizando Cloudflare Email Sending REST API -> Resend REST API -> SMTP.
+ */
+async function sendEmailViaConfiguredProvider(
+  { fromName, fromAddress, toAddress, replyToAddress, subject, html, text },
+  { timeoutMs = 10000, fetchImpl = global.fetch, qaSimOutcome = null } = {}
+) {
+  if (process.env.NODE_ENV !== 'production' && qaSimOutcome) {
+    if (qaSimOutcome === 'slow_ok') {
+      await new Promise((r) => setTimeout(r, 120))
+      return {
+        ok: true,
+        providerAccepted: true,
+        provider: 'CLOUDFLARE_QA_DOUBLE',
+        messageId: `qa-msg-${Date.now()}`,
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    }
+    if (qaSimOutcome === 'ok') {
+      return {
+        ok: true,
+        providerAccepted: true,
+        provider: 'CLOUDFLARE_QA_DOUBLE',
+        messageId: `qa-msg-${Date.now()}`,
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    }
+    if (qaSimOutcome === 'fail_503') {
+      return {
+        ok: false,
+        providerAccepted: false,
+        provider: 'CLOUDFLARE_QA_DOUBLE',
+        errorCode: 'PROVIDER_HTTP_503',
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    }
+    if (qaSimOutcome === 'timeout') {
+      return {
+        ok: false,
+        providerAccepted: false,
+        provider: 'CLOUDFLARE_QA_DOUBLE',
+        errorCode: 'PROVIDER_TIMEOUT',
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    }
+  }
+
+  const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
+  const cfApiToken = process.env.CLOUDFLARE_EMAIL_API_TOKEN?.trim()
+
+  // 1. Proveedor Primario: Cloudflare Email Sending REST API
+  if (!isPlaceholderCredential(cfAccountId) && !isPlaceholderCredential(cfApiToken)) {
+    const endpoint = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/sending/send`
+
+    // Estricto: From info@gastonramos.com.ar, sin CC ni BCC
+    const payload = {
+      from: {
+        address: fromAddress,
+        name: fromName,
+      },
+      to: toAddress,
+      reply_to: replyToAddress,
+      subject,
+      html,
+      text,
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      const response = await fetchImpl(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfApiToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'CLOUDFLARE',
+          errorCode: `PROVIDER_HTTP_${response.status}`,
+        }
+      }
+
+      const resData = await response.json().catch(() => ({}))
+      const isBounced = resData?.result?.permanent_bounces?.includes(toAddress)
+      if (isBounced) {
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'CLOUDFLARE',
+          errorCode: 'PERMANENT_BOUNCE',
+        }
+      }
+
+      const messageId = resData?.result?.id || resData?.result?.message_id || null
+      return {
+        ok: true,
+        providerAccepted: true,
+        provider: 'CLOUDFLARE',
+        messageId,
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    } catch (err) {
+      const isTimeout = err?.name === 'AbortError'
+      return {
+        ok: false,
+        providerAccepted: false,
+        provider: 'CLOUDFLARE',
+        errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
+      }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  // 2. Proveedor Secundario: Resend REST API
+  const resendApiKey = process.env.RESEND_API_KEY?.trim()
+  if (!isPlaceholderCredential(resendApiKey)) {
+    const resendPayload = {
+      from: `${fromName} <${fromAddress}>`,
+      to: [toAddress],
+      reply_to: replyToAddress,
+      subject,
+      html,
+      text,
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      const response = await fetchImpl('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resendPayload),
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'RESEND',
+          errorCode: `PROVIDER_HTTP_${response.status}`,
+        }
+      }
+
+      const resData = await response.json().catch(() => ({}))
+      return {
+        ok: true,
+        providerAccepted: true,
+        provider: 'RESEND',
+        messageId: resData?.id || null,
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    } catch (err) {
+      const isTimeout = err?.name === 'AbortError'
+      return {
+        ok: false,
+        providerAccepted: false,
+        provider: 'RESEND',
+        errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
+      }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  // 3. Proveedor Terciario: Google Workspace / SMTP autenticado sobre info@gastonramos.com.ar
+  const smtpUser = process.env.SMTP_USER?.trim()
+  const smtpPass = process.env.SMTP_PASS?.trim()
+  if (!isPlaceholderCredential(smtpUser) && !isPlaceholderCredential(smtpPass)) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: process.env.SMTP_SERVICE || 'gmail',
+        auth: { user: smtpUser, pass: smtpPass },
+        connectionTimeout: timeoutMs,
+        greetingTimeout: timeoutMs,
+        socketTimeout: timeoutMs,
+      })
+
+      const mailOptions = {
+        from: `"${fromName}" <${fromAddress}>`,
+        to: toAddress,
+        replyTo: replyToAddress,
+        subject,
+        text,
+        html,
+      }
+
+      const info = await transporter.sendMail(mailOptions)
+      return {
+        ok: true,
+        providerAccepted: true,
+        provider: 'SMTP',
+        messageId: info?.messageId || null,
+        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
+      }
+    } catch (err) {
+      const isTimeout = err?.code === 'ETIMEDOUT' || err?.message?.includes('Timeout')
+      return {
+        ok: false,
+        providerAccepted: false,
+        provider: 'SMTP',
+        errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'SMTP_SEND_ERROR',
+      }
+    }
+  }
+
+  return {
+    ok: false,
+    providerAccepted: false,
+    provider: 'UNCONFIGURED',
+    errorCode: 'PROVIDER_CREDENTIALS_MISSING',
+  }
+}
+
+/**
+ * Envía el Correo 1 (Notificación interna obligatoria a info@gastonramos.com.ar).
+ * From: info@gastonramos.com.ar | To: info@gastonramos.com.ar | Reply-To: visitante | Sin CC/BCC.
  */
 export async function dispatchContactEmail(
   sanitizedData,
@@ -374,7 +642,6 @@ export async function dispatchContactEmail(
   const recipients = resolveConfiguredRecipients()
   const { subject, text, html } = buildContactEmailContent(sanitizedData)
 
-  // Control de concurrencia para proteger la cuota y disponibilidad del proveedor de email
   if (activeDispatches >= MAX_CONCURRENT_DISPATCHES) {
     return {
       ok: false,
@@ -387,255 +654,72 @@ export async function dispatchContactEmail(
 
   activeDispatches += 1
   try {
-    // Modo de doble de prueba determinista exclusivamente para QA / Automatización (nunca en producción)
+    let qaSimOutcome = null
     if (process.env.NODE_ENV !== 'production' && qaMockMode) {
-      if (qaMockMode === 'slow_success') {
-        await new Promise((r) => setTimeout(r, 120))
-        return {
-          ok: true,
-          providerAccepted: true,
-          provider: 'CLOUDFLARE_QA_DOUBLE',
-          messageId: 'qa-msg-concurrent-ok',
-          recipientsStatus: recipients,
-        }
-      }
-      if (qaMockMode === 'unavailable') {
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'CLOUDFLARE_QA_DOUBLE',
-          errorCode: 'PROVIDER_HTTP_503',
-          recipientsStatus: recipients,
-        }
-      }
-      if (qaMockMode === 'timeout') {
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'CLOUDFLARE_QA_DOUBLE',
-          errorCode: 'PROVIDER_TIMEOUT',
-          recipientsStatus: recipients,
-        }
-      }
-      if (qaMockMode === 'success') {
-        return {
-          ok: true,
-          providerAccepted: true,
-          provider: 'CLOUDFLARE_QA_DOUBLE',
-          messageId: 'qa-msg-verified-ok',
-          recipientsStatus: recipients,
-        }
+      if (qaMockMode === 'slow_success') qaSimOutcome = 'slow_ok'
+      else if (qaMockMode === 'unavailable') qaSimOutcome = 'fail_503'
+      else if (qaMockMode === 'timeout') qaSimOutcome = 'timeout'
+      else if (qaMockMode === 'success' || qaMockMode === 'internal_ok_autoreply_fail') {
+        qaSimOutcome = 'ok'
       }
     }
 
-    const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
-    const cfApiToken = process.env.CLOUDFLARE_EMAIL_API_TOKEN?.trim()
-    const rawFrom =
-      process.env.CLOUDFLARE_EMAIL_FROM ||
-      process.env.CLOUDFLARE_EMAIL_FROM_ADDRESS ||
-      'GAR | gastonramos.com.ar <notificaciones@mail.inspexiona.com.ar>'
-    const { address: fromAddress, name: fromName } = parseFromHeader(rawFrom)
-
-    // 1. Proveedor Primario: Cloudflare Email Sending REST API (Patrón InspeXiona)
-    if (!isPlaceholderCredential(cfAccountId) && !isPlaceholderCredential(cfApiToken)) {
-      const endpoint = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/sending/send`
-
-      const payload = {
-        from: {
-          address: fromAddress,
-          name: fromName,
-        },
-        to: recipients.to,
-        reply_to: sanitizedData.email,
+    const res = await sendEmailViaConfiguredProvider(
+      {
+        fromName: INTERNAL_FROM_NAME,
+        fromAddress: INTERNAL_MAILBOX,
+        toAddress: INTERNAL_MAILBOX,
+        replyToAddress: sanitizedData.email,
         subject,
         html,
         text,
-      }
+      },
+      { timeoutMs, fetchImpl, qaSimOutcome }
+    )
 
-      if (recipients.cc) {
-        payload.cc = recipients.cc
-      }
-
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), timeoutMs)
-
-      try {
-        const response = await fetchImpl(endpoint, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${cfApiToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          return {
-            ok: false,
-            providerAccepted: false,
-            provider: 'CLOUDFLARE',
-            errorCode: `PROVIDER_HTTP_${response.status}`,
-            recipientsStatus: recipients,
-          }
-        }
-
-        const resData = await response.json().catch(() => ({}))
-        const isBounced = resData?.result?.permanent_bounces?.includes(recipients.to)
-        if (isBounced) {
-          return {
-            ok: false,
-            providerAccepted: false,
-            provider: 'CLOUDFLARE',
-            errorCode: 'PERMANENT_BOUNCE',
-            recipientsStatus: recipients,
-          }
-        }
-
-        const messageId = resData?.result?.id || resData?.result?.message_id || null
-        return {
-          ok: true,
-          providerAccepted: true,
-          provider: 'CLOUDFLARE',
-          messageId,
-          recipientsStatus: recipients,
-        }
-      } catch (err) {
-        const isTimeout = err?.name === 'AbortError'
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'CLOUDFLARE',
-          errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
-          recipientsStatus: recipients,
-        }
-      } finally {
-        clearTimeout(timer)
-      }
-    }
-
-    // 2. Proveedor Secundario (Patrón InspeXiona): Resend REST API (si RESEND_API_KEY está configurado)
-    const resendApiKey = process.env.RESEND_API_KEY?.trim()
-    if (!isPlaceholderCredential(resendApiKey)) {
-      const resendFrom =
-        process.env.EMAIL_FROM && !isPlaceholderCredential(process.env.EMAIL_FROM)
-          ? process.env.EMAIL_FROM.trim()
-          : `${fromName} <${fromAddress}>`
-
-      const resendPayload = {
-        from: resendFrom,
-        to: [recipients.to],
-        reply_to: sanitizedData.email,
-        subject,
-        html,
-        text,
-      }
-      if (recipients.cc) {
-        resendPayload.cc = [recipients.cc]
-      }
-
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), timeoutMs)
-
-      try {
-        const response = await fetchImpl('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(resendPayload),
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          return {
-            ok: false,
-            providerAccepted: false,
-            provider: 'RESEND',
-            errorCode: `PROVIDER_HTTP_${response.status}`,
-            recipientsStatus: recipients,
-          }
-        }
-
-        const resData = await response.json().catch(() => ({}))
-        return {
-          ok: true,
-          providerAccepted: true,
-          provider: 'RESEND',
-          messageId: resData?.id || null,
-          recipientsStatus: recipients,
-        }
-      } catch (err) {
-        const isTimeout = err?.name === 'AbortError'
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'RESEND',
-          errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR',
-          recipientsStatus: recipients,
-        }
-      } finally {
-        clearTimeout(timer)
-      }
-    }
-
-    // 3. Fallback Terciario: SMTP (solo si existen credenciales reales, no placeholders)
-    const smtpUser = process.env.SMTP_USER?.trim()
-    const smtpPass = process.env.SMTP_PASS?.trim()
-    if (!isPlaceholderCredential(smtpUser) && !isPlaceholderCredential(smtpPass)) {
-      try {
-        const transporter = nodemailer.createTransport({
-          service: process.env.SMTP_SERVICE || 'gmail',
-          auth: { user: smtpUser, pass: smtpPass },
-          connectionTimeout: timeoutMs,
-          greetingTimeout: timeoutMs,
-          socketTimeout: timeoutMs,
-        })
-
-        const mailOptions = {
-          from: `"GAR | gastonramos.com.ar" <${smtpUser}>`,
-          to: recipients.to,
-          replyTo: sanitizedData.email,
-          subject,
-          text,
-          html,
-        }
-        if (recipients.cc) {
-          mailOptions.cc = recipients.cc
-        }
-
-        const info = await transporter.sendMail(mailOptions)
-        return {
-          ok: true,
-          providerAccepted: true,
-          provider: 'SMTP',
-          messageId: info?.messageId || null,
-          recipientsStatus: recipients,
-        }
-      } catch (err) {
-        const isTimeout = err?.code === 'ETIMEDOUT' || err?.message?.includes('Timeout')
-        return {
-          ok: false,
-          providerAccepted: false,
-          provider: 'SMTP',
-          errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'SMTP_SEND_ERROR',
-          recipientsStatus: recipients,
-        }
-      }
-    }
-
-    // 3. Sin credenciales válidas configuradas (Fail-Closed honesto)
     return {
-      ok: false,
-      providerAccepted: false,
-      provider: 'UNCONFIGURED',
-      errorCode: 'PROVIDER_CREDENTIALS_MISSING',
+      ...res,
       recipientsStatus: recipients,
     }
   } finally {
     activeDispatches = Math.max(0, activeDispatches - 1)
   }
+}
+
+/**
+ * Envía el Correo 2 (Confirmación automática al visitante).
+ * Solo debe invocarse DESPUÉS de que dispatchContactEmail (Correo 1) haya sido aceptado.
+ * From: info@gastonramos.com.ar | To: visitante | Reply-To: info@gastonramos.com.ar | Sin CC/BCC.
+ */
+export async function dispatchVisitorAutoReplyEmail(
+  { nombre, email },
+  { timeoutMs = 10000, fetchImpl = global.fetch, qaMockMode = null } = {}
+) {
+  const { subject, text, html } = buildVisitorAutoReplyContent({ nombre })
+
+  let qaSimOutcome = null
+  if (process.env.NODE_ENV !== 'production' && qaMockMode) {
+    if (qaMockMode === 'internal_ok_autoreply_fail' || qaMockMode === 'unavailable') {
+      qaSimOutcome = 'fail_503'
+    } else if (qaMockMode === 'timeout') {
+      qaSimOutcome = 'timeout'
+    } else if (qaMockMode === 'success' || qaMockMode === 'slow_success') {
+      qaSimOutcome = 'ok'
+    }
+  }
+
+  return sendEmailViaConfiguredProvider(
+    {
+      fromName: AUTOREPLY_FROM_NAME,
+      fromAddress: INTERNAL_MAILBOX,
+      toAddress: email,
+      replyToAddress: INTERNAL_MAILBOX,
+      subject,
+      html,
+      text,
+    },
+    { timeoutMs, fetchImpl, qaSimOutcome }
+  )
 }
 
 /**
@@ -648,4 +732,3 @@ export function computeSubmissionFingerprint(ip, email, mensaje) {
     .update(`${ip || 'unknown'}|${String(email || '').toLowerCase()}|${String(mensaje || '').trim()}`)
     .digest('hex')
 }
-

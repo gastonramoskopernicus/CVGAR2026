@@ -89,6 +89,45 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - *Nota: En Vercel Serverless (`AWS Lambda`), `process.cwd()` (`/var/task`) es de solo lectura (`EROFS`). Cuando `process.env.VERCEL` está activo, los almacenes en disco de rate limiting y observabilidad deben escribir en `path.join(os.tmpdir(), 'gar-contact-security')` (`/tmp/gar-contact-security`).*
    - *Nota: No copiar secretos productivos desde otros proyectos (`InspeXiona`). Las credenciales del proveedor de correo (`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_EMAIL_API_TOKEN` + `CLOUDFLARE_EMAIL_FROM`, o `RESEND_API_KEY` + `EMAIL_FROM`, o `SMTP_USER` + `SMTP_PASS`) deben ser cargadas explícitamente en el proyecto Vercel `gaston-portfolio`.*
 
+---
+
+## 8. Doble Flujo de Correo: Notificación Interna (`info@gastonramos.com.ar`) y Confirmación Automática al Visitante
+1. **Correo 1 — Notificación Interna (Prioridad Crítica):**
+   - **From:** `info@gastonramos.com.ar` (`GAR | gastonramos.com.ar <info@gastonramos.com.ar>`)
+   - **To:** `info@gastonramos.com.ar`
+   - **Reply-To:** email validado del visitante.
+   - **Sin CC ni BCC** (prohibido enviar copias a cuentas de Gmail o Kopernicus).
+   - **Contenido:** Nombre, Email, Empresa, Teléfono, Mensaje, Fecha y hora (`America/Argentina/Buenos_Aires`), Origen (`gastonramos.com.ar`).
+2. **Correo 2 — Confirmación Automática al Visitante (Prioridad Secundaria Desacoplada):**
+   - **From:** `Gastón Alejandro Ramos <info@gastonramos.com.ar>`
+   - **To:** email validado del visitante.
+   - **Reply-To:** `info@gastonramos.com.ar`
+   - **Sin CC ni BCC.**
+   - **Asunto exacto:** `Gracias por contactarme — Gastón Ramos`
+   - **Contenido obligatorio (HTML responsive minimalista GAR + Texto plano):**
+     - Saludo: `Hola [Nombre],`
+     - Párrafo 1: `Gracias por contactarme y por tu interés.`
+     - Párrafo 2: `Recibí correctamente tu mensaje y a la brevedad me pondré en contacto con vos para conocer mejor tu consulta y evaluar cómo puedo ayudarte.`
+     - Firma: `Saludos,` / `Gastón Alejandro Ramos` / `Estrategia · Tecnología · Transformación` / `https://gastonramos.com.ar`
+   - **Restricciones de Seguridad en la Confirmación:**
+     - **PROHIBIDO incluir el mensaje original del visitante** en la confirmación automática (impide reflexión de contenido spam/phishing hacia terceros).
+     - Prohibido incluir enlaces promocionales o adjuntos.
+     - Se envía **únicamente después** de que todas las validaciones antispam pasen Y de que el correo interno a `info@gastonramos.com.ar` haya sido aceptado exitosamente por el proveedor.
+     - **Límite por destinatario de auto-respuesta:** máximo 1 confirmación automática cada 60 minutos y máximo 2 cada 24 horas para una misma dirección de correo destinataria (`checkAndConsumeAutoReplyQuota`), evitando bombardear casillas de terceros si un atacante reutiliza el mismo email con mensajes distintos.
+     - **Cuota global del conjunto de correos:** contabiliza cada correo emitido (interno + respuesta automática) contra el tope global horario (`CONTACT_RL_GLOBAL_EMAILS_60M=60`).
+3. **Tratamiento de Errores e Idempotencia:**
+   - Si falla el correo interno -> retornar error al usuario y **no enviar** la confirmación al visitante.
+   - Si el correo interno es aceptado pero falla la confirmación automática -> **no repetir** la notificación interna, retornar `HTTP 200` (`providerAccepted: true`, éxito visual al visitante), registrar el error de confirmación en observabilidad y guardar una entrada idempotente en `autoReplyRetryQueue` (con `requestId`, `nombre` y `email`, sin el mensaje original, permitiendo un único reintento separado vía `retryFailedAutoReply(requestId)` sin reintentos infinitos).
+4. **Diagnóstico DNS de `gastonramos.com.ar` (SPF, DKIM, DMARC y MX):**
+   - **NS:** `ruth.ns.cloudflare.com.`, `cameron.ns.cloudflare.com.`
+   - **MX actual (NO MODIFICAR):** `1 smtp.google.com.`
+   - **SPF actual:** `"v=spf1 include:_spf.google.com ~all"`
+   - **DKIM activo:** `google._domainkey.gastonramos.com.ar` (`v=DKIM1; k=rsa; p=MIIBIjAN...`)
+   - **DMARC actual:** `"v=DMARC1; p=none; rua=mailto:info@gastonramos.com.ar"`
+   - **Nota operativa de autenticación de remitente (`info@gastonramos.com.ar`):**
+     - Como el buzón `info@gastonramos.com.ar` tiene MX, SPF (`include:_spf.google.com`) y DKIM (`google._domainkey`) activos en Google Workspace, si se envía mediante Cloudflare Email Sending o Resend con `From: info@gastonramos.com.ar`, es requisito agregar el `include` SPF y registros DKIM del proveedor en Cloudflare DNS (sin tocar el registro MX `1 smtp.google.com`), o bien utilizar credenciales SMTP de `info@gastonramos.com.ar` en Google Workspace que ya cuentan con SPF y DKIM 100% autenticados en DNS.
+
+
 
 
 
