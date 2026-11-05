@@ -298,6 +298,8 @@ export default async function handler(req, res) {
 
   // 7. PRIORIDAD 2: Confirmación Automática al Visitante (solo tras aceptación del correo interno)
   let autoReplyStatus = 'SKIPPED'
+  let autoReplyMessageId = null
+  let autoReplyDeliveryState = null
   const autoReplyQuota = evaluateAndConsumeAutoReplyQuota({
     email: validation.data.email,
     ip,
@@ -321,6 +323,8 @@ export default async function handler(req, res) {
 
     if (autoReplyRes.ok && autoReplyRes.providerAccepted) {
       autoReplyStatus = 'SENT'
+      autoReplyMessageId = autoReplyRes.messageId || null
+      autoReplyDeliveryState = autoReplyRes.deliveryState || 'API_ACCEPTED'
     } else {
       // Si falla la respuesta automática: NO repetir la notificación interna, registrar el error
       // y guardar ticket idempotente para permitir reintentar la confirmación por separado.
@@ -340,7 +344,7 @@ export default async function handler(req, res) {
     validationResult: 'PASS',
     accepted: true,
     technicalReason: autoReplyStatus === 'FAILED_PENDING_RETRY' ? 'INTERNAL_OK_AUTOREPLY_FAILED' : 'OK',
-    providerResult: `${internalResult.provider}_INTERNAL_OK_AUTOREPLY_${autoReplyStatus}`,
+    providerResult: `${internalResult.provider}_INTERNAL_${internalResult.deliveryState || 'OK'}_AUTOREPLY_${autoReplyStatus}`,
     ip,
     email: validation.data.email,
   })
@@ -349,7 +353,11 @@ export default async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     providerAccepted: true,
+    internalDeliveryState: internalResult.deliveryState || 'API_ACCEPTED',
+    internalMessageId: internalResult.messageId || null,
     autoReplyStatus,
+    autoReplyDeliveryState,
+    autoReplyMessageId,
     requestId,
   })
 }
