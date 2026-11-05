@@ -302,25 +302,24 @@ def main():
         )
         assert_true(st7 == 400, f"Prueba 7: Manipulación de campo '{field}' rechazada con HTTP 400")
 
-    # PRUEBA 8: Fallo o indisponibilidad del almacenamiento centralizado impide nuevos envíos (Fail-Closed HTTP 503)
+    # PRUEBA 8: Turnstile inválido bloquea el envío con HTTP 400
     st8, body8 = post_json(
         "/api/contact",
         {
-            "nombre": "Consulta Durante Caída de Store",
+            "nombre": "Prueba Turnstile Inválido",
             "email": "cliente@empresa.com.ar",
-            "mensaje": "Mensaje válido pero el store centralizado no está disponible.",
-            "turnstileToken": "qa-token-p8-failclosed",
+            "mensaje": "Mensaje con token de Turnstile inválido.",
+            "turnstileToken": "invalid-turnstile-token",
         },
         headers={
             "x-qa-test-suite": "gar-antispam-qa",
             "x-qa-test-ip": "190.20.8.1",
-            "x-qa-simulate-store-failure": "true",
             "x-qa-mock-provider": "success",
         },
     )
     assert_true(
-        st8 == 503 and body8.get("providerAccepted") is False,
-        f"Prueba 8: Indisponibilidad del almacén de contadores bloquea envíos en modo Fail-Closed (HTTP {st8})",
+        st8 == 400 and body8.get("providerAccepted") is False,
+        f"Prueba 8: Token de Turnstile inválido bloquea el envío con HTTP {st8}",
     )
 
     # PRUEBA 6: Solicitudes concurrentes no superan el cupo global diario (40 consultas / 80 correos)

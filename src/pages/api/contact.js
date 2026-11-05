@@ -202,28 +202,26 @@ export default async function handler(req, res) {
     token: turnstileToken,
     remoteip: ip,
     expectedAction: EXPECTED_TURNSTILE_ACTION,
-    req,
   })
 
   if (!turnstileCheck.success) {
-    const isFailClosed = Boolean(turnstileCheck.failClosed)
     recordContactSecurityEvent({
       requestId,
-      validationResult: isFailClosed ? 'BLOCKED_FAIL_CLOSED_STORE' : 'BLOCKED_TURNSTILE',
+      validationResult: 'BLOCKED_TURNSTILE',
       accepted: false,
       technicalReason: turnstileCheck.errorCode || 'TURNSTILE_VERIFICATION_FAILED',
       providerResult: 'SKIPPED',
       ip,
       email: validation.data.email,
     })
-    return res.status(isFailClosed ? 503 : 400).json({
+    return res.status(400).json({
       ok: false,
       providerAccepted: false,
       error: USER_SAFE_ERROR_MSG,
     })
   }
 
-  // 5. Rate Limiting Atómico Centralizado (IP 60s min interval, IP 15m, IP 24h, Email 24h, Global 40/80 24h) + Duplicados (30m)
+  // 5. Controles de frecuencia disponibles en instancia (IP 60s min interval, IP 15m, IP 24h, Email 24h, Global 40/80 24h) + Duplicados (30m)
   const idempotencyKey =
     typeof req.headers?.['x-idempotency-key'] === 'string'
       ? req.headers['x-idempotency-key']
@@ -241,15 +239,10 @@ export default async function handler(req, res) {
   })
 
   if (!rateLimitResult.allowed) {
-    const isFailClosed = Boolean(rateLimitResult.failClosed)
     const isDuplicate = rateLimitResult.limitCategory === 'duplicate_30m'
     recordContactSecurityEvent({
       requestId,
-      validationResult: isFailClosed
-        ? 'BLOCKED_FAIL_CLOSED_STORE'
-        : isDuplicate
-        ? 'BLOCKED_DUPLICATE'
-        : 'BLOCKED_RATE_LIMIT',
+      validationResult: isDuplicate ? 'BLOCKED_DUPLICATE' : 'BLOCKED_RATE_LIMIT',
       accepted: false,
       technicalReason: rateLimitResult.code,
       providerResult: 'SKIPPED',
@@ -259,10 +252,10 @@ export default async function handler(req, res) {
       globalQuotaAlert: Boolean(rateLimitResult.globalQuotaAlert),
     })
 
-    return res.status(isFailClosed ? 503 : 429).json({
+    return res.status(429).json({
       ok: false,
       providerAccepted: false,
-      error: isFailClosed ? USER_SAFE_ERROR_MSG : USER_RATE_LIMIT_MSG,
+      error: USER_RATE_LIMIT_MSG,
     })
   }
 

@@ -63,19 +63,17 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - Validación exclusivamente en servidor (`src/lib/turnstileVerify.js`) contra `https://challenges.cloudflare.com/turnstile/v0/siteverify` con `TURNSTILE_SECRET_KEY` (jamás expuesta al cliente).
    - Verificación estricta de `success === true`, `action === 'contact_submit'`, `hostname` dentro de la lista blanca autorizada (`gastonramos.com.ar`, `localhost`, `127.0.0.1`, previews de Vercel del proyecto), y antigüedad del challenge.
    - **Prevención de Reutilización (Single-Use Token Ledger):** Todo token validado se registra mediante su hash SHA-256 en almacenamiento persistente con TTL de 15 minutos; cualquier intento de reutilizar un token es rechazado inmediatamente con `TOKEN_REUSED` antes de despachar correo.
-2. **Rate Limiting Atómico Centralizado y Modo Fail-Closed (`src/lib/contactRateLimiter.js`):**
-   - **Política obligatoria de límites (evaluada atómicamente ANTES de invocar Cloudflare Email Sending):**
+2. **Controles de Frecuencia sin Infraestructura Adicional (`src/lib/contactRateLimiter.js`):**
+   - **Política configurada en servidor (evaluada antes de invocar Cloudflare Email Sending):**
      - **Intervalo mínimo por IP:** `60` segundos entre solicitudes aceptadas desde la misma IP (`CONTACT_RL_IP_MIN_INTERVAL_SEC=60`).
      - **Por IP (corto plazo):** máximo `3` consultas cada `15` minutos (`CONTACT_RL_IP_15M=3`).
      - **Por IP (diario):** máximo `10` consultas cada `24` horas (`CONTACT_RL_IP_24H=10`).
      - **Por Email declarado (diario):** máximo `3` consultas cada `24` horas (`CONTACT_RL_EMAIL_24H=3`).
      - **Confirmación automática por Email:** máximo `1` cada `60` minutos (`CONTACT_AUTOREPLY_COOLDOWN_MIN=60`) y máximo `2` cada `24` horas.
      - **Mensajes idénticos (Duplicados):** bloqueo durante `30` minutos (`CONTACT_DUPLICATE_TTL_MIN=30`).
-     - **Cupo Global Diario:** máximo `40` consultas aceptadas por día (`CONTACT_RL_GLOBAL_24H=40`), equivalentes a un máximo de `80` correos salientes por día (`CONTACT_RL_GLOBAL_EMAILS_24H=80`).
-   - **Motores centralizados soportados nativamente (sin servicios pagos adicionales):**
-     1. **Cloudflare D1 SQLite REST API (`CLOUDFLARE_D1_DATABASE_ID`):** incluido sin costo adicional en el plan *Workers Paid* existente de la cuenta Cloudflare (`b58326e05930d9d3fea88a22f076eb20`). Crea y utiliza automáticamente la tabla `gar_rate_limits`.
-     2. **Upstash Redis / Vercel KV REST API (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`):** ejecuta un script Lua atómico (`EVAL`) que verifica e incrementa los 7 contadores en una sola operación indivisible.
-   - **Modo Fail-Closed obligatorio:** Si en producción/Vercel no está disponible el almacenamiento centralizado (o falla la conexión), `/api/contact` rechaza temporalmente nuevos envíos con `HTTP 503` (`CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE`, `providerAccepted: false`) sin permitir que `/tmp` ni cookies autoricen envíos sin control centralizado.
+     - **Cupo Global Diario por Instancia:** máximo `40` consultas aceptadas por día (`CONTACT_RL_GLOBAL_24H=40`), equivalentes a `80` correos salientes (`CONTACT_RL_GLOBAL_EMAILS_24H=80`).
+   - **Alcance técnico reconocido:** Se ejecuta sobre almacenamiento local de la instancia Serverless (`/tmp/gar-contact-security` con bloqueo atómico de archivo y mutex en memoria), sin requerir D1, Redis ni KV externos. Persiste mientras la instancia permanece caliente en la región de Vercel (`gru1`), pero no constituye un rate limiting global distribuido entre múltiples contenedores independientes.
+   - **Evaluación de protección de tráfico en el borde (Cloudflare / Vercel):** El registro `A` de `gastonramos.com.ar` (`216.198.79.1`) opera en modo *DNS Only* apuntando directo a Vercel (`server: Vercel`), por lo que las reglas WAF de Cloudflare no interceptan el tráfico HTTP salvo que se active el proxy naranja (con precaución sobre certificados SSL de Vercel), mientras que **Cloudflare Turnstile** sí evalúa señales de bot en el borde de Cloudflare antes de emitir el token y **Vercel Firewall** permite agregar reglas gratuitas sobre `/api/contact` en el borde de Vercel.
    - **Extracción segura de IP:** priorizar encabezados inyectados por proxies confiables (`cf-connecting-ip`, `x-vercel-forwarded-for`, o el primer hop confiable en entorno local/QA), ignorando cabeceras arbitrarias (`x-client-ip`, `client-ip`, etc.).
 3. **Honeypot Accesible (`_trap`):**
    - Invisible visualmente, fuera de foco de teclado (`tabIndex={-1}`), oculto para lectores de pantalla (`aria-hidden="true"`), `autoComplete="off"`, sin interferir con autocompletado legítimo.
