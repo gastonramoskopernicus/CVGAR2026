@@ -156,13 +156,14 @@ export function validateEmailAddress(rawEmail) {
  * garantizando ausencia total de CC y BCC.
  */
 export function resolveConfiguredRecipients() {
+  const mailbox = resolveInternalMailbox()
   return {
-    from: INTERNAL_MAILBOX,
-    to: INTERNAL_MAILBOX,
+    from: mailbox,
+    to: mailbox,
     cc: null,
     bcc: null,
     toStatus: {
-      configured: INTERNAL_MAILBOX,
+      configured: mailbox,
       valid: true,
       reason: 'OK',
     },
@@ -517,6 +518,16 @@ async function sendEmailViaConfiguredProvider(
       }
 
       const resData = await response.json().catch(() => ({}))
+      if (resData?.success === false) {
+        const cfCode = resData?.errors?.[0]?.code
+        return {
+          ok: false,
+          providerAccepted: false,
+          provider: 'CLOUDFLARE',
+          errorCode: cfCode ? `PROVIDER_CF_ERR_${cfCode}` : 'PROVIDER_CF_REJECTED',
+        }
+      }
+
       const isBounced = resData?.result?.permanent_bounces?.includes(toAddress)
       if (isBounced) {
         return {
@@ -528,11 +539,20 @@ async function sendEmailViaConfiguredProvider(
       }
 
       const messageId = resData?.result?.id || resData?.result?.message_id || null
+      const queuedList = Array.isArray(resData?.result?.queued) ? resData.result.queued : []
+      const deliveredList = Array.isArray(resData?.result?.delivered) ? resData.result.delivered : []
+      const deliveryState = deliveredList.includes(toAddress)
+        ? 'DELIVERED'
+        : queuedList.includes(toAddress)
+        ? 'QUEUED_FOR_DELIVERY'
+        : 'API_ACCEPTED'
+
       return {
         ok: true,
         providerAccepted: true,
         provider: 'CLOUDFLARE',
         messageId,
+        deliveryState,
         envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
       }
     } catch (err) {
@@ -645,11 +665,12 @@ export async function dispatchContactEmail(
       }
     }
 
+    const mailbox = resolveInternalMailbox()
     const res = await sendEmailViaConfiguredProvider(
       {
         fromName: INTERNAL_FROM_NAME,
-        fromAddress: INTERNAL_MAILBOX,
-        toAddress: INTERNAL_MAILBOX,
+        fromAddress: mailbox,
+        toAddress: mailbox,
         replyToAddress: sanitizedData.email,
         subject,
         html,
@@ -689,12 +710,13 @@ export async function dispatchVisitorAutoReplyEmail(
     }
   }
 
+  const mailbox = resolveInternalMailbox()
   return sendEmailViaConfiguredProvider(
     {
       fromName: AUTOREPLY_FROM_NAME,
-      fromAddress: INTERNAL_MAILBOX,
+      fromAddress: mailbox,
       toAddress: email,
-      replyToAddress: INTERNAL_MAILBOX,
+      replyToAddress: mailbox,
       subject,
       html,
       text,

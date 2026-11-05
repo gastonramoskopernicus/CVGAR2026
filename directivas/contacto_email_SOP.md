@@ -63,11 +63,11 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - Validación exclusivamente en servidor (`src/lib/turnstileVerify.js`) contra `https://challenges.cloudflare.com/turnstile/v0/siteverify` con `TURNSTILE_SECRET_KEY` (jamás expuesta al cliente).
    - Verificación estricta de `success === true`, `action === 'contact_submit'`, `hostname` dentro de la lista blanca autorizada (`gastonramos.com.ar`, `localhost`, `127.0.0.1`, previews de Vercel del proyecto), y antigüedad del challenge.
    - **Prevención de Reutilización (Single-Use Token Ledger):** Todo token validado se registra mediante su hash SHA-256 en almacenamiento persistente con TTL de 15 minutos; cualquier intento de reutilizar un token es rechazado inmediatamente con `TOKEN_REUSED` antes de despachar correo.
-2. **Rate Limiting Distribuido y Multi-Nivel (`src/lib/contactRateLimiter.js`):**
-   - Arquitectura híbrida de 3 capas sin servicios pagos adicionales:
-     1. **Capa 1 — Ledger Stateless Firmado Criptográficamente (`gar_rl_state` vía `HMAC-SHA256`):** Cookie `HttpOnly; SameSite=Strict; Secure` en `/api/contact` que sincroniza contadores de IP, email, hashes de mensajes duplicados (30m) y cooldowns de respuesta automática (60m/24h) entre distintas instancias Serverless de Vercel (incluso ante *cold starts* donde `/tmp` no se comparte) sin costo adicional.
-     2. **Capa 2 — Pipeline Distribuido Upstash Redis / Vercel KV REST:** Soporta `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (o `KV_REST_API_URL` + `KV_REST_API_TOKEN`) cuando estén configurados.
-     3. **Capa 3 — Almacén Atómico Compartido en Instancia (`/tmp/gar-contact-security`) + Challenge Edge de Cloudflare Turnstile:** Protege contra clientes que descarten cookies en instancias calientes y mediante validación criptográfica de un solo uso de Turnstile.
+2. **Rate Limiting Multi-Nivel (`src/lib/contactRateLimiter.js`):**
+   - Arquitectura en capas sin servicios pagos adicionales:
+     1. **Almacén Atómico en Instancia (`/tmp/gar-contact-security`) + Challenge de un solo uso de Cloudflare Turnstile:** Protege ráfagas recurrentes sobre la misma instancia caliente de Vercel Serverless y exige resolución de desafío Turnstile en el borde de Cloudflare.
+     2. **Refuerzo Stateless Firmado Criptográficamente (`gar_rl_state` vía `HMAC-SHA256`):** Cookie `HttpOnly; SameSite=Strict; Secure` en `/api/contact` que preserva contadores por navegador entre distintas instancias Serverless ante *cold starts*. **Limitación técnica conocida:** este refuerzo basado en cookie **no es equivalente a un almacenamiento distribuido centralizado**, ya que no garantiza un límite global por IP o email cuando las solicitudes provienen de clientes HTTP independientes o clientes automatizados que omiten las cookies.
+     3. **Conector Listo para Almacenamiento Distribuido Centralizado (`UPSTASH_REDIS_REST_URL` / `KV_REST_API_URL`):** Para contar con un límite global estricto entre múltiples instancias ante clientes que omitan cookies, el módulo soporta nativamente Redis/KV REST sin cambios de código adicionales.
    - **Umbrales configurables por entorno:**
      - **Por IP (corto plazo):** `3` envíos cada `15` minutos (`CONTACT_RL_IP_15M=3`).
      - **Por IP (diario):** `10` envíos cada `24` horas (`CONTACT_RL_IP_24H=10`).
