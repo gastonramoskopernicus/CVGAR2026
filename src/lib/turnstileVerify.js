@@ -75,6 +75,7 @@ export async function verifyTurnstileToken({
   expectedAction = EXPECTED_TURNSTILE_ACTION,
   fetchImpl = global.fetch,
   now = Date.now(),
+  req = null,
 } = {}) {
   if (!token || typeof token !== 'string' || !token.trim()) {
     return {
@@ -99,8 +100,15 @@ export async function verifyTurnstileToken({
     }
   }
 
-  // 1. Verificar en nuestro registro persistente que el token NO haya sido utilizado antes (Single-Use)
-  const replayCheck = await checkAndConsumeTurnstileToken(trimmedToken, now)
+  // 1. Verificar en nuestro registro centralizado que el token NO haya sido utilizado antes (Single-Use)
+  const replayCheck = await checkAndConsumeTurnstileToken(trimmedToken, now, req)
+  if (replayCheck.storeUnavailable) {
+    return {
+      success: false,
+      errorCode: 'CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE',
+      failClosed: true,
+    }
+  }
   if (replayCheck.reused) {
     return {
       success: false,

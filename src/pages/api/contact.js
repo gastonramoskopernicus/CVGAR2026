@@ -65,7 +65,7 @@ export default async function handler(req, res) {
   // Gestión separada e idempotente de reintento de confirmación automática (sin repetir notificación interna)
   const retryTicketId = req.headers?.['x-autoreply-retry-id']
   if (typeof retryTicketId === 'string' && retryTicketId.trim()) {
-    const ticket = getAutoReplyTicket(retryTicketId.trim())
+    const ticket = await getAutoReplyTicket(retryTicketId.trim(), Date.now(), req)
     if (!ticket) {
       return res.status(404).json({ ok: false, error: USER_SAFE_ERROR_MSG })
     }
@@ -88,17 +88,27 @@ export default async function handler(req, res) {
     )
 
     if (!retryRes.ok || !retryRes.providerAccepted) {
-      updateAutoReplyTicketStatus(ticket.requestId, {
-        status: 'RETRY_FAILED',
-        errorCode: retryRes.errorCode || 'AUTOREPLY_RETRY_FAILED',
-      })
+      await updateAutoReplyTicketStatus(
+        ticket.requestId,
+        {
+          status: 'RETRY_FAILED',
+          errorCode: retryRes.errorCode || 'AUTOREPLY_RETRY_FAILED',
+        },
+        Date.now(),
+        req
+      )
       return res.status(502).json({ ok: false, error: USER_SAFE_ERROR_MSG })
     }
 
-    updateAutoReplyTicketStatus(ticket.requestId, {
-      status: 'SENT',
-      messageId: retryRes.messageId || null,
-    })
+    await updateAutoReplyTicketStatus(
+      ticket.requestId,
+      {
+        status: 'SENT',
+        messageId: retryRes.messageId || null,
+      },
+      Date.now(),
+      req
+    )
     return res.status(200).json({
       ok: true,
       autoReplyStatus: 'SENT',
@@ -192,26 +202,28 @@ export default async function handler(req, res) {
     token: turnstileToken,
     remoteip: ip,
     expectedAction: EXPECTED_TURNSTILE_ACTION,
+    req,
   })
 
   if (!turnstileCheck.success) {
+    const isFailClosed = Boolean(turnstileCheck.failClosed)
     recordContactSecurityEvent({
       requestId,
-      validationResult: 'BLOCKED_TURNSTILE',
+      validationResult: isFailClosed ? 'BLOCKED_FAIL_CLOSED_STORE' : 'BLOCKED_TURNSTILE',
       accepted: false,
       technicalReason: turnstileCheck.errorCode || 'TURNSTILE_VERIFICATION_FAILED',
       providerResult: 'SKIPPED',
       ip,
       email: validation.data.email,
     })
-    return res.status(400).json({
+    return res.status(isFailClosed ? 503 : 400).json({
       ok: false,
       providerAccepted: false,
       error: USER_SAFE_ERROR_MSG,
     })
   }
 
-  // 5. Rate Limiting Distribuido (IP 15m, IP 24h, Email 60m, Global 60m, Global Emails 60m) + Duplicados (30m)
+  // 5. Rate Limiting Atómico Centralizado (IP 60s min interval, IP 15m, IP 24h, Email 24h, Global 40/80 24h) + Duplicados (30m)
   const idempotencyKey =
     typeof req.headers?.['x-idempotency-key'] === 'string'
       ? req.headers['x-idempotency-key']
@@ -226,14 +238,18 @@ export default async function handler(req, res) {
     mensaje: validation.data.mensaje,
     idempotencyKey,
     req,
-    res,
   })
 
   if (!rateLimitResult.allowed) {
+    const isFailClosed = Boolean(rateLimitResult.failClosed)
     const isDuplicate = rateLimitResult.limitCategory === 'duplicate_30m'
     recordContactSecurityEvent({
       requestId,
-      validationResult: isDuplicate ? 'BLOCKED_DUPLICATE' : 'BLOCKED_RATE_LIMIT',
+      validationResult: isFailClosed
+        ? 'BLOCKED_FAIL_CLOSED_STORE'
+        : isDuplicate
+        ? 'BLOCKED_DUPLICATE'
+        : 'BLOCKED_RATE_LIMIT',
       accepted: false,
       technicalReason: rateLimitResult.code,
       providerResult: 'SKIPPED',
@@ -243,10 +259,10 @@ export default async function handler(req, res) {
       globalQuotaAlert: Boolean(rateLimitResult.globalQuotaAlert),
     })
 
-    return res.status(429).json({
+    return res.status(isFailClosed ? 503 : 429).json({
       ok: false,
       providerAccepted: false,
-      error: USER_RATE_LIMIT_MSG,
+      error: isFailClosed ? USER_SAFE_ERROR_MSG : USER_RATE_LIMIT_MSG,
     })
   }
 
@@ -255,10 +271,12 @@ export default async function handler(req, res) {
   const internalResult = await dispatchContactEmail(validation.data, { qaMockMode })
 
   if (!internalResult.ok || !internalResult.providerAccepted) {
-    // Si el correo interno falla, liberar bloqueo de duplicado y NO generar confirmación al visitante
-    releaseDuplicateLockOnFailure({
+    // Si el correo interno falla, liberar bloqueo de duplicado/intervalo y NO generar confirmación al visitante
+    await releaseDuplicateLockOnFailure({
       messageHash: rateLimitResult.messageHash,
       cleanIdemKey: rateLimitResult.cleanIdemKey,
+      reservationKeys: rateLimitResult.reservationKeys,
+      req,
     })
 
     const isConcurrencyLimit = internalResult.errorCode === 'CONCURRENCY_LIMIT_EXCEEDED'
@@ -300,13 +318,9 @@ export default async function handler(req, res) {
   let autoReplyStatus = 'SKIPPED'
   let autoReplyMessageId = null
   let autoReplyDeliveryState = null
-  const autoReplyQuota = evaluateAndConsumeAutoReplyQuota({
+  const autoReplyQuota = await evaluateAndConsumeAutoReplyQuota({
     email: validation.data.email,
-    ip,
-    messageHash: rateLimitResult.messageHash,
-    cleanIdemKey: rateLimitResult.cleanIdemKey,
     req,
-    res,
   })
 
   if (!autoReplyQuota.allowed) {
@@ -329,12 +343,13 @@ export default async function handler(req, res) {
       // Si falla la respuesta automática: NO repetir la notificación interna, registrar el error
       // y guardar ticket idempotente para permitir reintentar la confirmación por separado.
       autoReplyStatus = 'FAILED_PENDING_RETRY'
-      releaseAutoReplyCooldownOnFailure({ cooldownKey: autoReplyQuota.cooldownKey })
-      registerFailedAutoReplyTicket({
+      await releaseAutoReplyCooldownOnFailure({ cooldownKey: autoReplyQuota.cooldownKey, req })
+      await registerFailedAutoReplyTicket({
         requestId,
         nombre: validation.data.nombre,
         email: validation.data.email,
         errorCode: autoReplyRes.errorCode || 'AUTOREPLY_FAILED',
+        req,
       })
     }
   }
