@@ -76,7 +76,7 @@ def main():
       }
 
       const internalMail = svc.buildContactEmailContent(validInput.data);
-      if (internalMail.subject !== 'GAR | Nueva consulta desde gastonramos.com.ar') {
+      if (internalMail.subject !== 'GAR — Nueva consulta desde el sitio web') {
         throw new Error('Unexpected internal subject: ' + internalMail.subject);
       }
       if (internalMail.html.includes('<script>')) {
