@@ -1,9 +1,9 @@
 import crypto from 'crypto'
-import nodemailer from 'nodemailer'
 
 /**
  * Servicio determinista de validación, seguridad y despacho de doble correo para el
- * formulario de contacto GAR (gastonramos.com.ar):
+ * formulario de contacto GAR (gastonramos.com.ar), reutilizando el patrón productivo
+ * `CloudflareEmailProvider` de `InspeXiona/src/lib/notifications/EmailNotificationProvider.ts`:
  *
  * 1. Correo Interno (Prioridad 1):
  *    - From: info@gastonramos.com.ar
@@ -486,11 +486,15 @@ async function sendEmailViaConfiguredProvider(
       })
 
       if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        const cfCode = errData?.errors?.[0]?.code
         return {
           ok: false,
           providerAccepted: false,
           provider: 'CLOUDFLARE',
-          errorCode: `PROVIDER_HTTP_${response.status}`,
+          errorCode: cfCode
+            ? `PROVIDER_HTTP_${response.status}_CF_${cfCode}`
+            : `PROVIDER_HTTP_${response.status}`,
         }
       }
 
@@ -526,7 +530,7 @@ async function sendEmailViaConfiguredProvider(
     }
   }
 
-  // 2. Proveedor Secundario: Resend REST API
+  // 2. Proveedor Secundario (Fallback idéntico a InspeXiona EmailNotificationProvider.ts): Resend REST API
   const resendApiKey = process.env.RESEND_API_KEY?.trim()
   if (!isPlaceholderCredential(resendApiKey)) {
     const resendPayload = {
@@ -579,47 +583,6 @@ async function sendEmailViaConfiguredProvider(
       }
     } finally {
       clearTimeout(timer)
-    }
-  }
-
-  // 3. Proveedor Terciario: Google Workspace / SMTP autenticado sobre info@gastonramos.com.ar
-  const smtpUser = process.env.SMTP_USER?.trim()
-  const smtpPass = process.env.SMTP_PASS?.trim()
-  if (!isPlaceholderCredential(smtpUser) && !isPlaceholderCredential(smtpPass)) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: process.env.SMTP_SERVICE || 'gmail',
-        auth: { user: smtpUser, pass: smtpPass },
-        connectionTimeout: timeoutMs,
-        greetingTimeout: timeoutMs,
-        socketTimeout: timeoutMs,
-      })
-
-      const mailOptions = {
-        from: `"${fromName}" <${fromAddress}>`,
-        to: toAddress,
-        replyTo: replyToAddress,
-        subject,
-        text,
-        html,
-      }
-
-      const info = await transporter.sendMail(mailOptions)
-      return {
-        ok: true,
-        providerAccepted: true,
-        provider: 'SMTP',
-        messageId: info?.messageId || null,
-        envelope: { from: fromAddress, to: toAddress, replyTo: replyToAddress, cc: null, bcc: null },
-      }
-    } catch (err) {
-      const isTimeout = err?.code === 'ETIMEDOUT' || err?.message?.includes('Timeout')
-      return {
-        ok: false,
-        providerAccepted: false,
-        provider: 'SMTP',
-        errorCode: isTimeout ? 'PROVIDER_TIMEOUT' : 'SMTP_SEND_ERROR',
-      }
     }
   }
 

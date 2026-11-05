@@ -14,17 +14,19 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - Ausencia de límites de longitud máxima por campo.
    - El frontend mostraba `err.message` crudo devuelto por el backend y no limpiaba el estado `values` tras el envío exitoso.
 
-## 3. Infraestructura Identificada en InspeXiona (`EmailNotificationProvider.ts`)
-- **Proveedor real verificado:** **Cloudflare Email Sending REST API** (el usuario refirió verbalmente "CloudFoundry", correspondiendo en la configuración técnica real de InspeXiona a **Cloudflare**).
-- **Endpoint oficial:** `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/sending/send`
-- **Método de integración:** Solicitud HTTP `POST` nativa (`fetch`) con encabezado `Authorization: Bearer ${CLOUDFLARE_EMAIL_API_TOKEN}` y payload JSON (`from`, `to`, `cc`, `reply_to`, `subject`, `html`, `text`).
-- **Variables de entorno requeridas (Server-Side):**
-  - `CLOUDFLARE_ACCOUNT_ID`: ID de cuenta de Cloudflare.
-  - `CLOUDFLARE_EMAIL_API_TOKEN`: Token de API con permiso *Email Sending: Write*.
-  - `CLOUDFLARE_EMAIL_FROM`: Remitente verificado en Cloudflare (ej. `GAR | gastonramos.com.ar <notificaciones@mail.inspexiona.com.ar>` o dominio verificado en `gastonramos.com.ar`).
-  - `CONTACT_TO_EMAIL`: Destinatario principal (`gaston.alejandro.ramos@gmail.com`).
-  - `CONTACT_CC_EMAIL`: Destinatario en copia (sujeto a validación ASCII RFC 5321/5322).
-- **Fallback opcional:** Si no se definen las variables de Cloudflare pero se proveen credenciales SMTP válidas (no placeholders), el servicio admite fallback controlado por SMTP; si ninguna credencial real está presente, devuelve error controlado `503` sin falsos positivos de aceptación.
+## 3. Auditoría de Integraciones Existentes (`techinsurance.com.ar` vs `InspeXiona`)
+1. **`techinsurance.com.ar` (`tech-insurance-2026/app/contacto/page.tsx`) y `sitioinspexiona` (`sitioinspexiona/app/contacto/ContactoClient.tsx`):**
+   - Ambos sitios institucionales utilizan `fetch("https://formsubmit.co/ajax/...")` desde el navegador.
+   - **Motivo de descarte para GAR:** `formsubmit.co` envía los correos con remitente `submissions@formsubmit.co` (impidiendo `From: info@gastonramos.com.ar`), requiere activación manual por enlace y no soporta el despacho de una segunda confirmación HTML personalizada desde `info@gastonramos.com.ar` hacia el visitante en llamadas `/ajax/`.
+2. **`InspeXiona` Plataforma (`InspeXiona/src/lib/notifications/EmailNotificationProvider.ts` — `CloudflareEmailProvider`):**
+   - **Integración productiva seleccionada:** `CloudflareEmailProvider` operando en producción con envíos reales verificados (`status: "SENT"`, IDs `<...@mail.inspexiona.com.ar>`).
+   - **Proveedor principal:** **Cloudflare Email Sending REST API** (`POST https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/sending/send`).
+   - **Proveedor secundario (fallback en el mismo módulo de InspeXiona):** **Resend REST API** (`POST https://api.resend.com/emails`).
+   - **Sin SMTP de Google Workspace:** Conforme a la directiva de reutilización, se elimina cualquier dependencia de `nodemailer` / SMTP para reutilizar exclusivamente el flujo REST (`CloudflareEmailProvider` / `ResendEmailProvider`) de InspeXiona.
+   - **Variables de entorno requeridas en Vercel (`gaston-portfolio`):**
+     - `CLOUDFLARE_ACCOUNT_ID`: ID de cuenta de Cloudflare (la misma cuenta donde conviven `inspexiona.com.ar` y `gastonramos.com.ar` bajo los nameservers `ruth.ns.cloudflare.com` y `cameron.ns.cloudflare.com`).
+     - `CLOUDFLARE_EMAIL_API_TOKEN`: Token de API con permiso *Email Sending: Write*.
+     - *(Opcional alternativo)* `RESEND_API_KEY`: API key de Resend si se utiliza el fallback de `EmailNotificationProvider.ts`.
 
 ## 4. Validación de Destinatarios (Trampa Conocida — EAI / Caracteres Internacionales)
 - **TO:** `gaston.alejandro.ramos@gmail.com` (100% válido bajo RFC 5321/5322 y Cloudflare Email API).
