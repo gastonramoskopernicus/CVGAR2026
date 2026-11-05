@@ -158,6 +158,57 @@ def main() -> int:
             "OK" if ssr_ok else "Falta contenido SSR en index.html",
         )
 
+    # 7. Ajustes V3.1 (Credenciales en Perfil, Carrusel Deportivo 60s/40s, Ecosistema sin recuadros, Doble correo)
+    creds = [
+        "Licenciado en Sistemas de Información",
+        "Licenciado en Administración",
+        "Posgrado en Derecho de Seguros",
+        "Docente universitario, speaker y disertante",
+    ]
+    missing_creds = [c for c in creds if c not in about_src]
+    record(
+        "Perfil V3.1: 4 credenciales profesionales debajo del encabezado",
+        len(missing_creds) == 0,
+        f"Faltantes: {missing_creds}" if missing_creds else "OK",
+    )
+
+    hobbies_css = read_text("src/styles/Hobbies.module.css")
+    sport_speed_ok = (
+        "animation: scroll 60s linear infinite;" in hobbies_css
+        and "animation-duration: 40s;" in hobbies_css
+        and "prefers-reduced-motion: reduce" in hobbies_css
+    )
+    record(
+        "Carrusel Deportivo V3.1: Duración reducida al 50% (120s->60s desktop, 80s->40s mobile) + reduced-motion",
+        sport_speed_ok,
+        "OK" if sport_speed_ok else "Revisar Hobbies.module.css",
+    )
+
+    eco_css = read_text("src/components/ProfessionalEcosystem.module.css")
+    eco_clean_ok = (
+        "background: transparent;" in eco_css
+        and "border: none;" in eco_css
+        and "box-shadow: none;" in eco_css
+        and "border-radius: 0;" in eco_css
+    )
+    record(
+        "Ecosistema Profesional V3.1: Eliminación de recuadros, bordes y fondos de tarjeta en los 4 logos",
+        eco_clean_ok,
+        "OK" if eco_clean_ok else "Revisar ProfessionalEcosystem.module.css",
+    )
+
+    email_svc = read_text("src/lib/contactEmailService.js")
+    dual_email_ok = (
+        "info@gastonramos.com.ar" in email_svc
+        and "GAR — Nueva consulta desde el sitio web" in email_svc
+        and "Gracias por contactarme — Gastón Ramos" in email_svc
+    )
+    record(
+        "Contacto V3.1: Servicio de doble correo (interno + auto-reply) hacia/desde info@gastonramos.com.ar",
+        dual_email_ok,
+        "OK" if dual_email_ok else "Revisar contactEmailService.js",
+    )
+
     # Save report in .tmp/
     tmp_dir = ROOT / ".tmp"
     tmp_dir.mkdir(exist_ok=True)

@@ -410,7 +410,7 @@
   display: flex;
   flex-shrink: 0;
   gap: 1.5rem;
-  animation: scroll 120s linear infinite;
+  animation: scroll 60s linear infinite;
   padding: 0 0.75rem;
 }
 
@@ -487,9 +487,15 @@
     height: 150px;
   }
   .marqueeTrack {
-    animation-duration: 80s;
+    animation-duration: 40s;
   }
   .lightboxImageWrapper {
     max-width: 95vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marqueeTrack {
+    animation: none;
   }
 }

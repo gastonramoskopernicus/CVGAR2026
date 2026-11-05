@@ -8,6 +8,13 @@ import ExperienceMap from '../components/ExperienceMap'
 import EcosystemSection from '../components/EcosystemSection'
 
 export default function About() {
+  const credentials = [
+    'Licenciado en Sistemas de Información',
+    'Licenciado en Administración',
+    'Posgrado en Derecho de Seguros',
+    'Docente universitario, speaker y disertante',
+  ]
+
   const dimensions = [
     {
       icon: 'strategy',
@@ -177,6 +184,15 @@ export default function About() {
               Consultor Senior en Estrategia, Tecnología y Transformación de Negocios, con más de 30 años de trayectoria acompañando la evolución de organizaciones y sistemas.
             </p>
           </div>
+
+          <ul className={styles.credentialsStrip} aria-label="Credenciales profesionales">
+            {credentials.map((cred) => (
+              <li key={cred} className={styles.credentialItem}>
+                <span className={styles.credentialMarker} aria-hidden="true" />
+                <span className={styles.credentialText}>{cred}</span>
+              </li>
+            ))}
+          </ul>
 
           <div className={styles.bioGrid}>
             <div className={styles.bioImageWrapper}>

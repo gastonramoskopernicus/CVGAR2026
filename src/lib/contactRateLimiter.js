@@ -4,14 +4,9 @@ import os from 'os'
 import path from 'path'
 
 /**
- * Sistema de Rate Limiting Distribuido, Prevención de Duplicados (30 min) y
- * Registro Anti-Replay de Tokens Turnstile para el formulario de contacto GAR.
- *
- * Arquitectura de almacenamiento de dos niveles (sin activar servicios pagos no autorizados):
- * 1. Distribuido en nube (Redis / Upstash REST): Se activa automáticamente cuando
- *    se configuran `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
- * 2. Almacenamiento persistente compartido en disco (`/tmp/gar-contact-security` en Vercel Serverless
- *    o `.storage/security/` en nodos dedicados): Respaldo determinista con escritura atómica.
+ * Sistema de Rate Limiting Distribuido, Prevención de Duplicados (30 min),
+ * Protección Anti-Abuso de Respuestas Automáticas por Destinatario, Cuota Global
+ * del Conjunto de Correos y Cola Idempotente de Reintento de Confirmaciones.
  */
 
 const STORAGE_DIR = process.env.VERCEL
@@ -33,8 +28,18 @@ export function getRateLimitConfig() {
     global60mLimit: Number(process.env.CONTACT_RL_GLOBAL_60M || 30),
     global60mWindowMs: 60 * 60 * 1000,
 
+    // Cuota global sobre el conjunto total de correos (internos + respuestas automáticas)
+    globalEmails60mLimit: Number(process.env.CONTACT_RL_GLOBAL_EMAILS_60M || 60),
+    globalEmails60mWindowMs: 60 * 60 * 1000,
+
+    // Límites específicos de respuesta automática por dirección de destinatario (anti-backscatter)
+    autoReplyCooldownMs: Number(process.env.CONTACT_AUTOREPLY_COOLDOWN_MIN || 60) * 60 * 1000,
+    autoReply24hLimit: Number(process.env.CONTACT_AUTOREPLY_24H_MAX || 2),
+    autoReply24hWindowMs: 24 * 60 * 60 * 1000,
+
     duplicateWindowMs: Number(process.env.CONTACT_DUPLICATE_TTL_MIN || 30) * 60 * 1000,
     turnstileTokenTtlMs: 15 * 60 * 1000,
+    autoReplyTicketTtlMs: 24 * 60 * 60 * 1000,
   }
 }
 
@@ -50,6 +55,8 @@ function createEmptyStore() {
     duplicates: {},
     consumedTokens: {},
     idempotencyKeys: {},
+    autoReplyRecipients: {},
+    autoReplyTickets: {},
   }
 }
 
@@ -69,6 +76,8 @@ function readPersistentStore(now = Date.now()) {
       duplicates: parsed.duplicates || {},
       consumedTokens: parsed.consumedTokens || {},
       idempotencyKeys: parsed.idempotencyKeys || {},
+      autoReplyRecipients: parsed.autoReplyRecipients || {},
+      autoReplyTickets: parsed.autoReplyTickets || {},
     }
     pruneExpiredEntries(store, now)
     return store
@@ -109,6 +118,16 @@ function pruneExpiredEntries(store, now) {
       delete store.idempotencyKeys[key]
     }
   }
+  for (const [key, expiresAt] of Object.entries(store.autoReplyRecipients)) {
+    if (!expiresAt || expiresAt <= now) {
+      delete store.autoReplyRecipients[key]
+    }
+  }
+  for (const [key, ticket] of Object.entries(store.autoReplyTickets)) {
+    if (!ticket || ticket.expiresAt <= now) {
+      delete store.autoReplyTickets[key]
+    }
+  }
 }
 
 export function resetRateLimiterStoreForTests() {
@@ -117,13 +136,11 @@ export function resetRateLimiterStoreForTests() {
 
 /**
  * Extrae la IP del cliente únicamente de encabezados confiables de plataforma
- * (Cloudflare / Vercel) y evita confiar en encabezados arbitrarios manipulables
- * como X-Client-IP o X-Original-Forwarded-For.
+ * (Cloudflare / Vercel) y evita confiar en encabezados arbitrarios manipulables.
  */
 export function resolveTrustedClientIp(req) {
   const headers = req?.headers || {}
 
-  // Permitir encabezado determinista de prueba únicamente en QA/Dev (nunca en producción)
   if (
     process.env.NODE_ENV !== 'production' &&
     headers['x-qa-test-suite'] === 'gar-antispam-qa' &&
@@ -133,12 +150,10 @@ export function resolveTrustedClientIp(req) {
     return headers['x-qa-test-ip'].trim()
   }
 
-  // 1. Cloudflare Connecting IP (inyectado por el borde de Cloudflare)
   if (typeof headers['cf-connecting-ip'] === 'string' && headers['cf-connecting-ip'].trim()) {
     return headers['cf-connecting-ip'].trim()
   }
 
-  // 2. Vercel Forwarded For (inyectado por el edge de Vercel, no falsificable por el cliente)
   if (
     typeof headers['x-vercel-forwarded-for'] === 'string' &&
     headers['x-vercel-forwarded-for'].trim()
@@ -146,18 +161,15 @@ export function resolveTrustedClientIp(req) {
     return headers['x-vercel-forwarded-for'].split(',')[0].trim()
   }
 
-  // 3. X-Real-IP de proxy reverso confiable
   if (typeof headers['x-real-ip'] === 'string' && headers['x-real-ip'].trim()) {
     return headers['x-real-ip'].trim()
   }
 
-  // 4. Fallback controlado en desarrollo local
   if (typeof headers['x-forwarded-for'] === 'string' && headers['x-forwarded-for'].trim()) {
     const hops = headers['x-forwarded-for']
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
-    // Tomamos el último hop añadido por el proxy inmediato para mitigar spoofing de prefijo XFF
     if (hops.length > 0) {
       return hops[hops.length - 1]
     }
@@ -197,9 +209,6 @@ export function hashKeyIdentifier(prefix, rawValue) {
   return `${prefix}:${digest}`
 }
 
-/**
- * Adaptador opcional para Upstash Redis REST API si se encuentra configurado en el entorno.
- */
 async function executeUpstashPipeline(commands) {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim()
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
@@ -223,7 +232,6 @@ async function executeUpstashPipeline(commands) {
 
 /**
  * Verifica y marca un token de Turnstile como consumido para impedir su reutilización (Single-Use).
- * Devuelve `{ reused: true }` si el token ya fue utilizado previamente.
  */
 export async function checkAndConsumeTurnstileToken(rawToken, now = Date.now()) {
   if (!rawToken || typeof rawToken !== 'string') {
@@ -237,7 +245,6 @@ export async function checkAndConsumeTurnstileToken(rawToken, now = Date.now()) 
 
   const { turnstileTokenTtlMs } = getRateLimitConfig()
 
-  // Si Upstash Redis está configurado, usar SET NX PX atómico
   const redisRes = await executeUpstashPipeline([
     ['SET', `gar:ts:${tokenHash}`, '1', 'PX', String(turnstileTokenTtlMs), 'NX'],
   ])
@@ -246,7 +253,6 @@ export async function checkAndConsumeTurnstileToken(rawToken, now = Date.now()) 
     return { reused: !wasSet, tokenHash }
   }
 
-  // Almacenamiento persistente compartido en disco
   const store = readPersistentStore(now)
   const existingExpiry = store.consumedTokens[tokenHash]
   if (existingExpiry && existingExpiry > now) {
@@ -260,12 +266,6 @@ export async function checkAndConsumeTurnstileToken(rawToken, now = Date.now()) 
 
 /**
  * Evalúa todos los límites de tasa distribuidos y detección de mensajes duplicados (30 min).
- * Orden de evaluación:
- * 1. Clave de idempotencia / Mensaje idéntico en los últimos 30 minutos
- * 2. Por IP (3 cada 15 minutos)
- * 3. Por IP (10 cada 24 horas)
- * 4. Por Email declarado (3 cada 60 minutos)
- * 5. Global del formulario (30 cada 60 minutos)
  */
 export async function evaluateContactRateLimits({
   ip,
@@ -281,6 +281,7 @@ export async function evaluateContactRateLimits({
   const ip24hKey = hashKeyIdentifier('ip24h', ip)
   const email60mKey = hashKeyIdentifier('email60m', email)
   const global60mKey = 'global60m:all'
+  const globalEmails60mKey = 'global_emails_60m:all'
   const cleanIdemKey =
     typeof idempotencyKey === 'string' &&
     idempotencyKey.trim().length > 0 &&
@@ -311,7 +312,6 @@ export async function evaluateContactRateLimits({
     }
   }
 
-  // Helper para consultar un bucket sin incrementarlo todavía
   const getBucketCount = (key) => {
     const entry = store.buckets[key]
     if (!entry || entry.expiresAt <= now) return 0
@@ -351,8 +351,11 @@ export async function evaluateContactRateLimits({
     }
   }
 
-  // 5. Límite Global del formulario (30 / 60 min)
-  if (getBucketCount(global60mKey) >= cfg.global60mLimit) {
+  // 5. Límite Global de consultas (30 / 60 min) o cuota global del conjunto de correos (60 / 60 min)
+  if (
+    getBucketCount(global60mKey) >= cfg.global60mLimit ||
+    getBucketCount(globalEmails60mKey) >= cfg.globalEmails60mLimit
+  ) {
     return {
       allowed: false,
       statusCode: 429,
@@ -363,20 +366,21 @@ export async function evaluateContactRateLimits({
     }
   }
 
-  // Todos los controles pasaron -> Incrementar contadores y registrar huella de duplicado (30 min)
-  const incrementBucket = (key, windowMs) => {
+  const incrementBucket = (key, windowMs, delta = 1) => {
     const existing = store.buckets[key]
     if (!existing || existing.expiresAt <= now) {
-      store.buckets[key] = { count: 1, expiresAt: now + windowMs }
+      store.buckets[key] = { count: delta, expiresAt: now + windowMs }
     } else {
-      existing.count += 1
+      existing.count += delta
     }
   }
 
-  incrementBucket(ip15mKey, cfg.ip15mWindowMs)
-  incrementBucket(ip24hKey, cfg.ip24hWindowMs)
-  incrementBucket(email60mKey, cfg.email60mWindowMs)
-  incrementBucket(global60mKey, cfg.global60mWindowMs)
+  incrementBucket(ip15mKey, cfg.ip15mWindowMs, 1)
+  incrementBucket(ip24hKey, cfg.ip24hWindowMs, 1)
+  incrementBucket(email60mKey, cfg.email60mWindowMs, 1)
+  incrementBucket(global60mKey, cfg.global60mWindowMs, 1)
+  // Contabilizar el correo interno en la cuota global del conjunto de correos
+  incrementBucket(globalEmails60mKey, cfg.globalEmails60mWindowMs, 1)
 
   store.duplicates[messageHash] = now + cfg.duplicateWindowMs
   if (cleanIdemKey) {
@@ -395,8 +399,138 @@ export async function evaluateContactRateLimits({
 }
 
 /**
- * Si el proveedor de email falla por razones técnicas (timeout/5xx), libera el bloqueo de
- * mensaje duplicado para que el usuario legítimo pueda volver a intentar enviar su consulta.
+ * Evalúa si corresponde enviar la confirmación automática al visitante para prevenir
+ * abuso de respuestas automáticas a terceros (backscatter spam):
+ * - Máximo 1 confirmación automática cada 60 minutos a la misma dirección.
+ * - Máximo 2 confirmaciones automáticas cada 24 horas a la misma dirección.
+ * - Verifica que el conjunto total de correos (`global_emails_60m:all`) no supere la cuota global.
+ */
+export function evaluateAndConsumeAutoReplyQuota({ email, now = Date.now() }) {
+  const cfg = getRateLimitConfig()
+  const store = readPersistentStore(now)
+
+  const cooldownKey = hashKeyIdentifier('ar_cd', email)
+  const dailyKey = hashKeyIdentifier('ar_24h', email)
+  const globalEmails60mKey = 'global_emails_60m:all'
+
+  // 1. Verificar ventana corta de enfriamiento por destinatario (60 min)
+  if (store.autoReplyRecipients[cooldownKey] && store.autoReplyRecipients[cooldownKey] > now) {
+    return {
+      allowed: false,
+      reason: 'AUTOREPLY_RECIPIENT_COOLDOWN_60M',
+    }
+  }
+
+  // 2. Verificar tope diario de respuestas automáticas por destinatario (2 / 24h)
+  const dailyBucket = store.buckets[dailyKey]
+  const dailyCount = dailyBucket && dailyBucket.expiresAt > now ? dailyBucket.count : 0
+  if (dailyCount >= cfg.autoReply24hLimit) {
+    return {
+      allowed: false,
+      reason: 'AUTOREPLY_RECIPIENT_DAILY_LIMIT',
+    }
+  }
+
+  // 3. Verificar cuota global del conjunto de correos (internos + respuestas automáticas)
+  const globalEmailBucket = store.buckets[globalEmails60mKey]
+  const globalEmailCount =
+    globalEmailBucket && globalEmailBucket.expiresAt > now ? globalEmailBucket.count : 0
+  if (globalEmailCount >= cfg.globalEmails60mLimit) {
+    return {
+      allowed: false,
+      reason: 'AUTOREPLY_GLOBAL_EMAIL_QUOTA_EXCEEDED',
+    }
+  }
+
+  // Reservar cuota de respuesta automática
+  store.autoReplyRecipients[cooldownKey] = now + cfg.autoReplyCooldownMs
+  if (!dailyBucket || dailyBucket.expiresAt <= now) {
+    store.buckets[dailyKey] = { count: 1, expiresAt: now + cfg.autoReply24hWindowMs }
+  } else {
+    store.buckets[dailyKey].count += 1
+  }
+
+  if (!globalEmailBucket || globalEmailBucket.expiresAt <= now) {
+    store.buckets[globalEmails60mKey] = { count: 1, expiresAt: now + cfg.globalEmails60mWindowMs }
+  } else {
+    store.buckets[globalEmails60mKey].count += 1
+  }
+
+  writePersistentStore(store)
+  return {
+    allowed: true,
+    reason: 'OK',
+    cooldownKey,
+  }
+}
+
+export function releaseAutoReplyCooldownOnFailure({ cooldownKey }) {
+  if (!cooldownKey) return
+  const store = readPersistentStore()
+  delete store.autoReplyRecipients[cooldownKey]
+  writePersistentStore(store)
+}
+
+/**
+ * Registra un ticket separado e idempotente cuando el correo interno a info@gastonramos.com.ar
+ * fue aceptado pero falló el envío de la respuesta automática al visitante, permitiendo
+ * gestionar un único reintento de la confirmación sin repetir la notificación interna.
+ * No almacena el mensaje original del visitante.
+ */
+export function registerFailedAutoReplyTicket({
+  requestId,
+  nombre,
+  email,
+  errorCode,
+  now = Date.now(),
+}) {
+  if (!requestId || !email) return null
+  const cfg = getRateLimitConfig()
+  const store = readPersistentStore(now)
+
+  const ticket = {
+    requestId,
+    nombre: String(nombre || '').slice(0, 120),
+    email: String(email || '').slice(0, 254),
+    status: 'PENDING_RETRY',
+    lastErrorCode: errorCode || 'AUTOREPLY_DISPATCH_FAILED',
+    attempts: 1,
+    maxAttempts: 2,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: now + cfg.autoReplyTicketTtlMs,
+  }
+
+  store.autoReplyTickets[requestId] = ticket
+  writePersistentStore(store)
+  return ticket
+}
+
+export function getAutoReplyTicket(requestId, now = Date.now()) {
+  if (!requestId) return null
+  const store = readPersistentStore(now)
+  return store.autoReplyTickets[requestId] || null
+}
+
+export function updateAutoReplyTicketStatus(requestId, { status, messageId = null, errorCode = null }, now = Date.now()) {
+  if (!requestId) return null
+  const store = readPersistentStore(now)
+  const ticket = store.autoReplyTickets[requestId]
+  if (!ticket) return null
+
+  ticket.status = status
+  ticket.attempts = (ticket.attempts || 1) + 1
+  ticket.updatedAt = new Date(now).toISOString()
+  if (messageId) ticket.messageId = messageId
+  if (errorCode) ticket.lastErrorCode = errorCode
+
+  store.autoReplyTickets[requestId] = ticket
+  writePersistentStore(store)
+  return ticket
+}
+
+/**
+ * Si el correo interno falla por razones técnicas, libera el bloqueo de mensaje duplicado
+ * para que el usuario legítimo pueda volver a intentar enviar su consulta.
  */
 export function releaseDuplicateLockOnFailure({ messageHash, cleanIdemKey }) {
   if (!messageHash && !cleanIdemKey) return

@@ -7,7 +7,7 @@
 }
 
 .header {
-  margin-bottom: 4.5rem;
+  margin-bottom: 2.5rem;
   border-bottom: 1px solid var(--border-default);
   padding-bottom: 2rem;
   position: relative;
@@ -38,6 +38,48 @@
   font-weight: 400;
   max-width: 680px;
   line-height: 1.6;
+}
+
+/* Compact Professional Credentials Strip (between Header and Bio) */
+.credentialsStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0 0 3.75rem;
+  padding: 1.25rem 1.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+.credentialItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-right: 1rem;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.credentialItem:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.credentialMarker {
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent-yellow);
+  flex-shrink: 0;
+}
+
+.credentialText {
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.38;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .bioGrid {
@@ -451,6 +493,16 @@
 }
 
 @media (max-width: 1024px) {
+  .credentialsStrip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 1.5rem;
+  }
+
+  .credentialItem:nth-child(2n) {
+    border-right: none;
+    padding-right: 0;
+  }
+
   .bioGrid {
     grid-template-columns: 1fr;
     gap: 3rem;
@@ -471,7 +523,26 @@
   }
 
   .header {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
+  }
+
+  .credentialsStrip {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 2.75rem;
+  }
+
+  .credentialItem {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 0.75rem;
+  }
+
+  .credentialItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
   }
 
   .timelineItem {
