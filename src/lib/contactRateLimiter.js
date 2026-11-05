@@ -4,35 +4,63 @@ import os from 'os'
 import path from 'path'
 
 /**
- * Sistema de Rate Limiting Distribuido, Prevención de Duplicados (30 min),
- * Protección Anti-Abuso de Respuestas Automáticas por Destinatario, Cuota Global
- * del Conjunto de Correos y Cola Idempotente de Reintento de Confirmaciones.
+ * Sistema de Rate Limiting Atómico Centralizado (Fail-Closed) + Defensas Complementarias:
+ *
+ * Política obligatoria (evaluada atómicamente ANTES de invocar Cloudflare Email Sending):
+ * - Intervalo mínimo de 60 segundos entre solicitudes aceptadas desde la misma IP.
+ * - Máximo 3 consultas por IP cada 15 minutos.
+ * - Máximo 10 consultas por IP cada 24 horas.
+ * - Máximo 3 consultas por dirección de email cada 24 horas.
+ * - Máximo 1 confirmación automática por email cada 60 minutos.
+ * - Bloqueo de mensajes duplicados durante 30 minutos.
+ * - Máximo global de 40 consultas aceptadas por día (24h), equivalentes a un máximo de 80 correos salientes.
+ *
+ * Motores centralizados soportados (sin requerir servicios pagos adicionales):
+ * 1. Cloudflare D1 SQLite REST API (`CLOUDFLARE_D1_DATABASE_ID` + `CLOUDFLARE_ACCOUNT_ID` + token con D1:Edit, incluido en Workers Paid).
+ * 2. Upstash Redis / Vercel KV REST API (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` o `KV_REST_API_URL` + `KV_REST_API_TOKEN`) mediante script Lua atómico (`EVAL`).
+ * 3. Almacén central compartido con bloqueo inter-proceso (`.lock` atómico + cola mutex) exclusivamente para pruebas aisladas/multi-instancia en QA/desarrollo (`NODE_ENV !== 'production'` y fuera de Vercel).
+ *
+ * Comportamiento Fail-Closed:
+ * - Si el almacenamiento centralizado no está configurado en producción/Vercel o falla/no responde,
+ *   se bloquean temporalmente nuevos envíos (`HTTP 503`, `CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE`)
+ *   sin permitir que `/tmp` ni cookies HMAC autoricen el envío.
  */
 
-const STORAGE_DIR = process.env.VERCEL
+const LOCAL_TMP_DIR = process.env.VERCEL
   ? path.join(os.tmpdir(), 'gar-contact-security')
   : path.join(process.cwd(), '.storage', 'security')
-const RATE_LIMIT_FILE = path.join(STORAGE_DIR, 'contact-rate-limits.json')
+
+function resolveCentralDevStoreFile() {
+  if (process.env.CONTACT_CENTRAL_STORE_FILE) {
+    return process.env.CONTACT_CENTRAL_STORE_FILE
+  }
+  return path.join(LOCAL_TMP_DIR, 'contact-central-rate-limits.json')
+}
 
 export function getRateLimitConfig() {
   return {
+    ipMinIntervalMs:
+      process.env.CONTACT_RL_IP_MIN_INTERVAL_SEC !== undefined
+        ? Number(process.env.CONTACT_RL_IP_MIN_INTERVAL_SEC) * 1000
+        : 60 * 1000,
+
     ip15mLimit: Number(process.env.CONTACT_RL_IP_15M || 3),
     ip15mWindowMs: 15 * 60 * 1000,
 
     ip24hLimit: Number(process.env.CONTACT_RL_IP_24H || 10),
     ip24hWindowMs: 24 * 60 * 60 * 1000,
 
-    email60mLimit: Number(process.env.CONTACT_RL_EMAIL_60M || 3),
-    email60mWindowMs: 60 * 60 * 1000,
+    email24hLimit: Number(process.env.CONTACT_RL_EMAIL_24H || process.env.CONTACT_RL_EMAIL_60M || 3),
+    email24hWindowMs: 24 * 60 * 60 * 1000,
 
-    global60mLimit: Number(process.env.CONTACT_RL_GLOBAL_60M || 30),
-    global60mWindowMs: 60 * 60 * 1000,
+    global24hLimit: Number(process.env.CONTACT_RL_GLOBAL_24H || process.env.CONTACT_RL_GLOBAL_60M || 40),
+    global24hWindowMs: 24 * 60 * 60 * 1000,
 
-    // Cuota global sobre el conjunto total de correos (internos + respuestas automáticas)
-    globalEmails60mLimit: Number(process.env.CONTACT_RL_GLOBAL_EMAILS_60M || 60),
-    globalEmails60mWindowMs: 60 * 60 * 1000,
+    globalEmails24hLimit: Number(
+      process.env.CONTACT_RL_GLOBAL_EMAILS_24H || process.env.CONTACT_RL_GLOBAL_EMAILS_60M || 80
+    ),
+    globalEmails24hWindowMs: 24 * 60 * 60 * 1000,
 
-    // Límites específicos de respuesta automática por dirección de destinatario (anti-backscatter)
     autoReplyCooldownMs: Number(process.env.CONTACT_AUTOREPLY_COOLDOWN_MIN || 60) * 60 * 1000,
     autoReply24hLimit: Number(process.env.CONTACT_AUTOREPLY_24H_MAX || 2),
     autoReply24hWindowMs: 24 * 60 * 60 * 1000,
@@ -43,9 +71,132 @@ export function getRateLimitConfig() {
   }
 }
 
-function ensureStorageDir() {
-  if (!fs.existsSync(STORAGE_DIR)) {
-    fs.mkdirSync(STORAGE_DIR, { recursive: true })
+/**
+ * Determina qué backend centralizado está configurado y disponible.
+ * En Vercel / Producción NO se acepta el filesystem local `/tmp` como backend centralizado.
+ */
+export function resolveCentralStoreBackend(req = null) {
+  const simFailHeader =
+    process.env.NODE_ENV !== 'production' &&
+    req?.headers?.['x-qa-test-suite'] === 'gar-antispam-qa' &&
+    req?.headers?.['x-qa-simulate-store-failure'] === 'true'
+
+  if (simFailHeader || process.env.CONTACT_SIMULATE_STORE_FAILURE === 'true') {
+    return { type: 'UNAVAILABLE', reason: 'SIMULATED_CENTRAL_STORE_FAILURE' }
+  }
+
+  const redisUrl = (
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.KV_REST_API_URL ||
+    ''
+  ).trim()
+  const redisToken = (
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.KV_REST_API_TOKEN ||
+    ''
+  ).trim()
+
+  if (redisUrl && redisToken && redisToken !== '[SENSITIVE]') {
+    return { type: 'REDIS_REST', url: redisUrl.replace(/\/$/, ''), token: redisToken }
+  }
+
+  const cfAccountId = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim()
+  const cfD1DbId = (process.env.CLOUDFLARE_D1_DATABASE_ID || '').trim()
+  const cfD1Token = (
+    process.env.CLOUDFLARE_D1_API_TOKEN ||
+    process.env.CLOUDFLARE_EMAIL_API_TOKEN ||
+    ''
+  ).trim()
+
+  if (
+    cfAccountId &&
+    cfD1DbId &&
+    cfD1Token &&
+    cfAccountId !== '[SENSITIVE]' &&
+    cfD1DbId !== '[SENSITIVE]' &&
+    cfD1Token !== '[SENSITIVE]'
+  ) {
+    return {
+      type: 'CLOUDFLARE_D1',
+      accountId: cfAccountId,
+      databaseId: cfD1DbId,
+      token: cfD1Token,
+    }
+  }
+
+  // En entorno Serverless de Vercel o Producción real, /tmp NO es compartido entre instancias:
+  // si no hay Redis/KV ni D1 configurado, operar en FAIL-CLOSED estricto.
+  const isServerlessOrProd =
+    Boolean(process.env.VERCEL) ||
+    process.env.NODE_ENV === 'production' ||
+    process.env.CONTACT_REQUIRE_EXTERNAL_CENTRAL_STORE === 'true'
+
+  if (isServerlessOrProd) {
+    return {
+      type: 'UNAVAILABLE',
+      reason: 'CENTRAL_STORE_NOT_CONFIGURED_IN_PRODUCTION',
+    }
+  }
+
+  // Solo en entorno local/QA controlado (fuera de Vercel) se permite el archivo central con lock atómico
+  return {
+    type: 'QA_SHARED_LOCK_STORE',
+    filePath: resolveCentralDevStoreFile(),
+  }
+}
+
+// Cola mutex en proceso + archivo .lock inter-proceso para garantizar atomicidad estricta
+let inProcessMutex = Promise.resolve()
+
+async function withAtomicFileLock(filePath, fn) {
+  const prev = inProcessMutex
+  let releaseInProcess
+  inProcessMutex = new Promise((resolve) => {
+    releaseInProcess = resolve
+  })
+
+  await prev
+  const dir = path.dirname(filePath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  const lockFile = `${filePath}.lock`
+  let lockFd = null
+
+  try {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try {
+        lockFd = fs.openSync(lockFile, 'wx')
+        break
+      } catch (err) {
+        if (err?.code === 'EEXIST') {
+          try {
+            const stat = fs.statSync(lockFile)
+            if (Date.now() - stat.mtimeMs > 5000) {
+              fs.unlinkSync(lockFile)
+              continue
+            }
+          } catch {}
+          await new Promise((r) => setTimeout(r, 15))
+          continue
+        }
+        throw err
+      }
+    }
+    if (lockFd === null) {
+      throw new Error('LOCK_ACQUISITION_TIMEOUT')
+    }
+    return await fn()
+  } finally {
+    if (lockFd !== null) {
+      try {
+        fs.closeSync(lockFd)
+      } catch {}
+      try {
+        fs.unlinkSync(lockFile)
+      } catch {}
+    }
+    releaseInProcess()
   }
 }
 
@@ -60,83 +211,60 @@ function createEmptyStore() {
   }
 }
 
-function readPersistentStore(now = Date.now()) {
-  try {
-    ensureStorageDir()
-    if (!fs.existsSync(RATE_LIMIT_FILE)) {
-      return createEmptyStore()
-    }
-    const raw = fs.readFileSync(RATE_LIMIT_FILE, 'utf8')
-    const parsed = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object') {
-      return createEmptyStore()
-    }
-    const store = {
-      buckets: parsed.buckets || {},
-      duplicates: parsed.duplicates || {},
-      consumedTokens: parsed.consumedTokens || {},
-      idempotencyKeys: parsed.idempotencyKeys || {},
-      autoReplyRecipients: parsed.autoReplyRecipients || {},
-      autoReplyTickets: parsed.autoReplyTickets || {},
-    }
-    pruneExpiredEntries(store, now)
-    return store
-  } catch {
-    return createEmptyStore()
-  }
-}
-
-function writePersistentStore(store) {
-  try {
-    ensureStorageDir()
-    const tmpFile = `${RATE_LIMIT_FILE}.${process.pid}.${Date.now()}.tmp`
-    fs.writeFileSync(tmpFile, JSON.stringify(store), 'utf8')
-    fs.renameSync(tmpFile, RATE_LIMIT_FILE)
-  } catch (err) {
-    console.error('[contact-rate-limiter] Error escribiendo store:', err?.message)
-  }
-}
-
 function pruneExpiredEntries(store, now) {
   for (const [key, entry] of Object.entries(store.buckets)) {
-    if (!entry || entry.expiresAt <= now) {
-      delete store.buckets[key]
-    }
+    if (!entry || entry.expiresAt <= now) delete store.buckets[key]
   }
   for (const [key, expiresAt] of Object.entries(store.duplicates)) {
-    if (!expiresAt || expiresAt <= now) {
-      delete store.duplicates[key]
-    }
+    if (!expiresAt || expiresAt <= now) delete store.duplicates[key]
   }
   for (const [key, expiresAt] of Object.entries(store.consumedTokens)) {
-    if (!expiresAt || expiresAt <= now) {
-      delete store.consumedTokens[key]
-    }
+    if (!expiresAt || expiresAt <= now) delete store.consumedTokens[key]
   }
   for (const [key, expiresAt] of Object.entries(store.idempotencyKeys)) {
-    if (!expiresAt || expiresAt <= now) {
-      delete store.idempotencyKeys[key]
-    }
+    if (!expiresAt || expiresAt <= now) delete store.idempotencyKeys[key]
   }
   for (const [key, expiresAt] of Object.entries(store.autoReplyRecipients)) {
-    if (!expiresAt || expiresAt <= now) {
-      delete store.autoReplyRecipients[key]
-    }
+    if (!expiresAt || expiresAt <= now) delete store.autoReplyRecipients[key]
   }
   for (const [key, ticket] of Object.entries(store.autoReplyTickets)) {
-    if (!ticket || ticket.expiresAt <= now) {
-      delete store.autoReplyTickets[key]
-    }
+    if (!ticket || ticket.expiresAt <= now) delete store.autoReplyTickets[key]
   }
+}
+
+function readStoreSync(filePath, now = Date.now()) {
+  if (!fs.existsSync(filePath)) return createEmptyStore()
+  const raw = fs.readFileSync(filePath, 'utf8')
+  const parsed = JSON.parse(raw)
+  const store = {
+    buckets: parsed?.buckets || {},
+    duplicates: parsed?.duplicates || {},
+    consumedTokens: parsed?.consumedTokens || {},
+    idempotencyKeys: parsed?.idempotencyKeys || {},
+    autoReplyRecipients: parsed?.autoReplyRecipients || {},
+    autoReplyTickets: parsed?.autoReplyTickets || {},
+  }
+  pruneExpiredEntries(store, now)
+  return store
+}
+
+function writeStoreSync(filePath, store) {
+  const dir = path.dirname(filePath)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const tmpFile = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
+  fs.writeFileSync(tmpFile, JSON.stringify(store), 'utf8')
+  fs.renameSync(tmpFile, filePath)
 }
 
 export function resetRateLimiterStoreForTests() {
-  writePersistentStore(createEmptyStore())
+  const filePath = resolveCentralDevStoreFile()
+  try {
+    writeStoreSync(filePath, createEmptyStore())
+  } catch {}
 }
 
 /**
- * Extrae la IP del cliente únicamente de encabezados confiables de plataforma
- * (Cloudflare / Vercel) y evita confiar en encabezados arbitrarios manipulables.
+ * Extrae la IP del cliente únicamente de encabezados confiables de plataforma (Cloudflare / Vercel).
  */
 export function resolveTrustedClientIp(req) {
   const headers = req?.headers || {}
@@ -178,9 +306,6 @@ export function resolveTrustedClientIp(req) {
   return req?.socket?.remoteAddress || '127.0.0.1'
 }
 
-/**
- * Calcula un hash SHA-256 sobre los campos normalizados sin almacenar el mensaje completo.
- */
 export function computeNormalizedMessageHash({ email, nombre, mensaje }) {
   const normEmail = String(email || '')
     .trim()
@@ -209,246 +334,224 @@ export function hashKeyIdentifier(prefix, rawValue) {
   return `${prefix}:${digest}`
 }
 
-async function executeUpstashPipeline(commands) {
-  const url = (
-    process.env.UPSTASH_REDIS_REST_URL ||
-    process.env.KV_REST_API_URL ||
-    ''
-  ).trim()
-  const token = (
-    process.env.UPSTASH_REDIS_REST_TOKEN ||
-    process.env.KV_REST_API_TOKEN ||
-    ''
-  ).trim()
-  if (!url || !token) return null
-
-  try {
-    const res = await fetch(`${url.replace(/\/$/, '')}/pipeline`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(commands),
-    })
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
-    return null
+async function executeUpstashPipeline(backend, commands) {
+  const res = await fetch(`${backend.url}/pipeline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${backend.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(commands),
+  })
+  if (!res.ok) {
+    throw new Error(`UPSTASH_HTTP_${res.status}`)
   }
+  const data = await res.json()
+  if (!Array.isArray(data)) {
+    throw new Error('UPSTASH_INVALID_RESPONSE')
+  }
+  return data
 }
 
-const RL_COOKIE_NAME = 'gar_rl_state'
+let d1SchemaInitialized = false
 
-function resolveHmacSecret() {
-  return (
-    process.env.CONTACT_RL_SECRET?.trim() ||
-    process.env.NEXTAUTH_SECRET?.trim() ||
-    process.env.TURNSTILE_SECRET_KEY?.trim() ||
-    'gar-default-stateless-rl-hmac-key-2026'
+async function executeCloudflareD1Query(backend, sql, params = []) {
+  const endpoint = `https://api.cloudflare.com/client/v4/accounts/${backend.accountId}/d1/database/${backend.databaseId}/query`
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${backend.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sql, params }),
+  })
+  if (!res.ok) {
+    throw new Error(`D1_HTTP_${res.status}`)
+  }
+  const data = await res.json()
+  if (!data?.success) {
+    throw new Error(`D1_API_ERROR_${data?.errors?.[0]?.code || 'UNKNOWN'}`)
+  }
+  return data.result?.[0]?.results || []
+}
+
+async function ensureD1Schema(backend) {
+  if (d1SchemaInitialized) return
+  await executeCloudflareD1Query(
+    backend,
+    `CREATE TABLE IF NOT EXISTS gar_rate_limits (
+      k TEXT PRIMARY KEY,
+      cnt INTEGER NOT NULL,
+      exp INTEGER NOT NULL,
+      meta TEXT
+    );`
   )
-}
-
-function parseCookies(cookieHeader = '') {
-  const out = {}
-  if (typeof cookieHeader !== 'string' || !cookieHeader) return out
-  for (const part of cookieHeader.split(';')) {
-    const [k, ...rest] = part.trim().split('=')
-    if (k && rest.length > 0) {
-      out[k.trim()] = rest.join('=').trim()
-    }
-  }
-  return out
+  d1SchemaInitialized = true
 }
 
 /**
- * Lee y verifica criptográficamente (HMAC-SHA256) el estado distribuido stateless desde
- * la cookie HttpOnly del cliente, garantizando continuidad entre instancias Serverless
- * de Vercel (cold starts donde /tmp no se comparte) sin servicios pagos externos.
+ * Verifica y marca un token de Turnstile como consumido (Single-Use) en el almacén central.
+ * Si el almacén central no está disponible, opera en fail-closed (`storeError: true`).
  */
-export function readDistributedCookieLedger(req, now = Date.now()) {
-  try {
-    const cookies = parseCookies(req?.headers?.cookie || '')
-    const raw = cookies[RL_COOKIE_NAME]
-    if (!raw || !raw.includes('.')) return null
-
-    const [payloadB64, sig] = raw.split('.')
-    if (!payloadB64 || !sig) return null
-
-    const expectedSig = crypto
-      .createHmac('sha256', resolveHmacSecret())
-      .update(payloadB64)
-      .digest('base64url')
-
-    const sigBuf = Buffer.from(sig)
-    const expBuf = Buffer.from(expectedSig)
-    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      return null
-    }
-
-    const parsed = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'))
-    if (!parsed || typeof parsed !== 'object') return null
-
-    return {
-      ip15m: Array.isArray(parsed.ip15m) ? parsed.ip15m.filter((t) => t > now) : [],
-      ip24h: Array.isArray(parsed.ip24h) ? parsed.ip24h.filter((t) => t > now) : [],
-      em60m: parsed.em60m && typeof parsed.em60m === 'object' ? parsed.em60m : {},
-      dup: parsed.dup && typeof parsed.dup === 'object' ? parsed.dup : {},
-      idem: parsed.idem && typeof parsed.idem === 'object' ? parsed.idem : {},
-      arCd: parsed.arCd && typeof parsed.arCd === 'object' ? parsed.arCd : {},
-      ar24h: parsed.ar24h && typeof parsed.ar24h === 'object' ? parsed.ar24h : {},
-    }
-  } catch {
-    return null
-  }
-}
-
-/**
- * Firma (HMAC-SHA256) y emite la cookie HttpOnly con el estado actualizado de rate-limit
- * para sincronizar el estado entre instancias Serverless de Vercel sin costo adicional.
- */
-export function writeDistributedCookieLedger(res, store, { ip, email, messageHash, cleanIdemKey }, now = Date.now()) {
-  if (!res || typeof res.setHeader !== 'function') return
-  try {
-    const ip15mKey = hashKeyIdentifier('ip15m', ip)
-    const ip24hKey = hashKeyIdentifier('ip24h', ip)
-    const email60mKey = hashKeyIdentifier('email60m', email)
-    const cooldownKey = hashKeyIdentifier('ar_cd', email)
-    const dailyKey = hashKeyIdentifier('ar_24h', email)
-
-    const b15 = store.buckets[ip15mKey]
-    const b24 = store.buckets[ip24hKey]
-    const bEm = store.buckets[email60mKey]
-    const bAr24 = store.buckets[dailyKey]
-
-    const dupMap = {}
-    for (const [k, exp] of Object.entries(store.duplicates || {})) {
-      if (exp > now) dupMap[k.slice(0, 24)] = exp
-    }
-    if (messageHash && store.duplicates?.[messageHash]) {
-      dupMap[messageHash.slice(0, 24)] = store.duplicates[messageHash]
-    }
-
-    const idemMap = {}
-    if (cleanIdemKey && store.idempotencyKeys?.[cleanIdemKey]) {
-      idemMap[cleanIdemKey] = store.idempotencyKeys[cleanIdemKey]
-    }
-
-    const arCdMap = {}
-    if (store.autoReplyRecipients?.[cooldownKey] > now) {
-      arCdMap[cooldownKey] = store.autoReplyRecipients[cooldownKey]
-    }
-
-    const payload = {
-      ip15m: b15 && b15.expiresAt > now ? Array(Math.min(b15.count, 10)).fill(b15.expiresAt) : [],
-      ip24h: b24 && b24.expiresAt > now ? Array(Math.min(b24.count, 20)).fill(b24.expiresAt) : [],
-      em60m: bEm && bEm.expiresAt > now ? { [email60mKey]: { c: bEm.count, e: bEm.expiresAt } } : {},
-      dup: dupMap,
-      idem: idemMap,
-      arCd: arCdMap,
-      ar24h: bAr24 && bAr24.expiresAt > now ? { [dailyKey]: { c: bAr24.count, e: bAr24.expiresAt } } : {},
-    }
-
-    const payloadB64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')
-    const sig = crypto
-      .createHmac('sha256', resolveHmacSecret())
-      .update(payloadB64)
-      .digest('base64url')
-
-    const secureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : ''
-    const cookieStr = `${RL_COOKIE_NAME}=${payloadB64}.${sig}; Path=/api/contact; Max-Age=86400; HttpOnly; SameSite=Strict${secureFlag}`
-    res.setHeader('Set-Cookie', cookieStr)
-  } catch {
-    // No interrumpir flujo si los encabezados ya fueron enviados
-  }
-}
-
-function hydrateStoreFromCookieLedger(store, cookieLedger, { ip, email, messageHash, cleanIdemKey }, now = Date.now()) {
-  if (!cookieLedger) return
-  const ip15mKey = hashKeyIdentifier('ip15m', ip)
-  const ip24hKey = hashKeyIdentifier('ip24h', ip)
-  const email60mKey = hashKeyIdentifier('email60m', email)
-  const cooldownKey = hashKeyIdentifier('ar_cd', email)
-  const dailyKey = hashKeyIdentifier('ar_24h', email)
-
-  if (cookieLedger.ip15m.length > 0) {
-    const maxExp = Math.max(...cookieLedger.ip15m)
-    const cur = store.buckets[ip15mKey]
-    if (!cur || cur.expiresAt <= now || cur.count < cookieLedger.ip15m.length) {
-      store.buckets[ip15mKey] = { count: cookieLedger.ip15m.length, expiresAt: maxExp }
-    }
-  }
-  if (cookieLedger.ip24h.length > 0) {
-    const maxExp = Math.max(...cookieLedger.ip24h)
-    const cur = store.buckets[ip24hKey]
-    if (!cur || cur.expiresAt <= now || cur.count < cookieLedger.ip24h.length) {
-      store.buckets[ip24hKey] = { count: cookieLedger.ip24h.length, expiresAt: maxExp }
-    }
-  }
-  const emEntry = cookieLedger.em60m?.[email60mKey]
-  if (emEntry && emEntry.e > now) {
-    const cur = store.buckets[email60mKey]
-    if (!cur || cur.expiresAt <= now || cur.count < emEntry.c) {
-      store.buckets[email60mKey] = { count: emEntry.c, expiresAt: emEntry.e }
-    }
-  }
-  if (messageHash) {
-    const shortDup = messageHash.slice(0, 24)
-    if (cookieLedger.dup?.[shortDup] > now) {
-      store.duplicates[messageHash] = cookieLedger.dup[shortDup]
-    }
-  }
-  if (cleanIdemKey && cookieLedger.idem?.[cleanIdemKey] > now) {
-    store.idempotencyKeys[cleanIdemKey] = cookieLedger.idem[cleanIdemKey]
-  }
-  if (cookieLedger.arCd?.[cooldownKey] > now) {
-    store.autoReplyRecipients[cooldownKey] = cookieLedger.arCd[cooldownKey]
-  }
-  const ar24Entry = cookieLedger.ar24h?.[dailyKey]
-  if (ar24Entry && ar24Entry.e > now) {
-    const cur = store.buckets[dailyKey]
-    if (!cur || cur.expiresAt <= now || cur.count < ar24Entry.c) {
-      store.buckets[dailyKey] = { count: ar24Entry.c, expiresAt: ar24Entry.e }
-    }
-  }
-}
-
-/**
- * Verifica y marca un token de Turnstile como consumido para impedir su reutilización (Single-Use).
- */
-export async function checkAndConsumeTurnstileToken(rawToken, now = Date.now()) {
+export async function checkAndConsumeTurnstileToken(rawToken, now = Date.now(), req = null) {
   if (!rawToken || typeof rawToken !== 'string') {
     return { reused: false }
+  }
+
+  const backend = resolveCentralStoreBackend(req)
+  if (backend.type === 'UNAVAILABLE') {
+    return { reused: false, storeUnavailable: true, reason: backend.reason }
   }
 
   const tokenHash = crypto
     .createHash('sha256')
     .update(`gar-turnstile-token|${rawToken.trim()}`)
     .digest('hex')
-
+  const key = `ts:${tokenHash}`
   const { turnstileTokenTtlMs } = getRateLimitConfig()
+  const expiresAt = now + turnstileTokenTtlMs
 
-  const redisRes = await executeUpstashPipeline([
-    ['SET', `gar:ts:${tokenHash}`, '1', 'PX', String(turnstileTokenTtlMs), 'NX'],
-  ])
-  if (Array.isArray(redisRes) && redisRes[0]) {
-    const wasSet = redisRes[0].result === 'OK'
-    return { reused: !wasSet, tokenHash }
+  try {
+    if (backend.type === 'REDIS_REST') {
+      const redisRes = await executeUpstashPipeline(backend, [
+        ['SET', `gar:${key}`, '1', 'PX', String(turnstileTokenTtlMs), 'NX'],
+      ])
+      const wasSet = redisRes[0]?.result === 'OK'
+      return { reused: !wasSet, tokenHash }
+    }
+
+    if (backend.type === 'CLOUDFLARE_D1') {
+      await ensureD1Schema(backend)
+      const rows = await executeCloudflareD1Query(
+        backend,
+        `INSERT INTO gar_rate_limits (k, cnt, exp) VALUES (?1, 1, ?2)
+         ON CONFLICT(k) DO UPDATE SET cnt = CASE WHEN gar_rate_limits.exp <= ?3 THEN 1 ELSE gar_rate_limits.cnt + 1 END,
+                                      exp = CASE WHEN gar_rate_limits.exp <= ?3 THEN ?2 ELSE gar_rate_limits.exp END
+         RETURNING cnt;`,
+        [key, expiresAt, now]
+      )
+      const cnt = Number(rows?.[0]?.cnt || 1)
+      return { reused: cnt > 1, tokenHash }
+    }
+
+    return await withAtomicFileLock(backend.filePath, async () => {
+      const store = readStoreSync(backend.filePath, now)
+      if (store.consumedTokens[tokenHash] && store.consumedTokens[tokenHash] > now) {
+        return { reused: true, tokenHash }
+      }
+      store.consumedTokens[tokenHash] = expiresAt
+      writeStoreSync(backend.filePath, store)
+      return { reused: false, tokenHash }
+    })
+  } catch (err) {
+    return {
+      reused: false,
+      storeUnavailable: true,
+      reason: err?.message || 'CENTRAL_STORE_ERROR',
+    }
   }
-
-  const store = readPersistentStore(now)
-  const existingExpiry = store.consumedTokens[tokenHash]
-  if (existingExpiry && existingExpiry > now) {
-    return { reused: true, tokenHash }
-  }
-
-  store.consumedTokens[tokenHash] = now + turnstileTokenTtlMs
-  writePersistentStore(store)
-  return { reused: false, tokenHash }
 }
 
 /**
- * Evalúa todos los límites de tasa distribuidos y detección de mensajes duplicados (30 min).
+ * Script Lua atómico para Upstash Redis / Vercel KV:
+ * Evalúa las 8 condiciones y, solo si todas pasan, incrementa atómicamente los contadores.
+ */
+const REDIS_EVALUATE_LUA = `
+local idemKey = KEYS[1]
+local dupKey = KEYS[2]
+local ipIntKey = KEYS[3]
+local ip15mKey = KEYS[4]
+local ip24hKey = KEYS[5]
+local email24hKey = KEYS[6]
+local globalConsKey = KEYS[7]
+local globalEmailsKey = KEYS[8]
+
+local hasIdem = tonumber(ARGV[1])
+local dupTtl = tonumber(ARGV[2])
+local ipIntTtl = tonumber(ARGV[3])
+local ip15mLimit = tonumber(ARGV[4])
+local ip15mTtl = tonumber(ARGV[5])
+local ip24hLimit = tonumber(ARGV[6])
+local ip24hTtl = tonumber(ARGV[7])
+local email24hLimit = tonumber(ARGV[8])
+local email24hTtl = tonumber(ARGV[9])
+local globalConsLimit = tonumber(ARGV[10])
+local globalConsTtl = tonumber(ARGV[11])
+local globalEmailsLimit = tonumber(ARGV[12])
+local globalEmailsTtl = tonumber(ARGV[13])
+
+if hasIdem == 1 and redis.call('EXISTS', idemKey) == 1 then
+  return 'DUPLICATE_IDEMPOTENCY_KEY'
+end
+if redis.call('EXISTS', dupKey) == 1 then
+  return 'DUPLICATE_MESSAGE_30M'
+end
+if ipIntTtl > 0 and redis.call('EXISTS', ipIntKey) == 1 then
+  return 'RATE_LIMIT_IP_MIN_INTERVAL_60S'
+end
+if tonumber(redis.call('GET', ip15mKey) or '0') >= ip15mLimit then
+  return 'RATE_LIMIT_IP_15M'
+end
+if tonumber(redis.call('GET', ip24hKey) or '0') >= ip24hLimit then
+  return 'RATE_LIMIT_IP_24H'
+end
+if tonumber(redis.call('GET', email24hKey) or '0') >= email24hLimit then
+  return 'RATE_LIMIT_EMAIL_24H'
+end
+if tonumber(redis.call('GET', globalConsKey) or '0') >= globalConsLimit then
+  return 'RATE_LIMIT_GLOBAL_24H'
+end
+if tonumber(redis.call('GET', globalEmailsKey) or '0') >= globalEmailsLimit then
+  return 'RATE_LIMIT_GLOBAL_24H'
+end
+
+local function incrWithTtl(k, ttl)
+  local v = redis.call('INCR', k)
+  if v == 1 then
+    redis.call('PEXPIRE', k, ttl)
+  end
+  return v
+end
+
+if hasIdem == 1 then
+  redis.call('SET', idemKey, '1', 'PX', dupTtl)
+end
+redis.call('SET', dupKey, '1', 'PX', dupTtl)
+if ipIntTtl > 0 then
+  redis.call('SET', ipIntKey, '1', 'PX', ipIntTtl)
+end
+incrWithTtl(ip15mKey, ip15mTtl)
+incrWithTtl(ip24hKey, ip24hTtl)
+incrWithTtl(email24hKey, email24hTtl)
+incrWithTtl(globalConsKey, globalConsTtl)
+incrWithTtl(globalEmailsKey, globalEmailsTtl)
+
+return 'OK'
+`
+
+function mapRateLimitCodeToFailure(code, messageHash) {
+  const categoryMap = {
+    DUPLICATE_IDEMPOTENCY_KEY: 'duplicate_30m',
+    DUPLICATE_MESSAGE_30M: 'duplicate_30m',
+    RATE_LIMIT_IP_MIN_INTERVAL_60S: 'ip_interval_60s',
+    RATE_LIMIT_IP_15M: 'ip_15m',
+    RATE_LIMIT_IP_24H: 'ip_24h',
+    RATE_LIMIT_EMAIL_24H: 'email_24h',
+    RATE_LIMIT_GLOBAL_24H: 'global_24h',
+  }
+  return {
+    allowed: false,
+    statusCode: 429,
+    code,
+    limitCategory: categoryMap[code] || 'rate_limit',
+    globalQuotaAlert: code === 'RATE_LIMIT_GLOBAL_24H',
+    messageHash,
+  }
+}
+
+/**
+ * Evalúa y reserva atómicamente los límites del lado servidor ANTES de invocar Cloudflare Email Sending.
+ * Opera en modo FAIL-CLOSED (`statusCode: 503`) si el almacenamiento centralizado no está disponible.
  */
 export async function evaluateContactRateLimits({
   ip,
@@ -457,16 +560,16 @@ export async function evaluateContactRateLimits({
   mensaje,
   idempotencyKey = '',
   req = null,
-  res = null,
   now = Date.now(),
 }) {
   const cfg = getRateLimitConfig()
   const messageHash = computeNormalizedMessageHash({ email, nombre, mensaje })
+  const ipIntKey = hashKeyIdentifier('ip_int60s', ip)
   const ip15mKey = hashKeyIdentifier('ip15m', ip)
   const ip24hKey = hashKeyIdentifier('ip24h', ip)
-  const email60mKey = hashKeyIdentifier('email60m', email)
-  const global60mKey = 'global60m:all'
-  const globalEmails60mKey = 'global_emails_60m:all'
+  const email24hKey = hashKeyIdentifier('email24h', email)
+  const global24hKey = 'global24h:consultations'
+  const globalEmails24hKey = 'global24h:emails'
   const cleanIdemKey =
     typeof idempotencyKey === 'string' &&
     idempotencyKey.trim().length > 0 &&
@@ -474,229 +577,392 @@ export async function evaluateContactRateLimits({
       ? hashKeyIdentifier('idem', idempotencyKey.trim())
       : null
 
-  const store = readPersistentStore(now)
-  const cookieLedger = readDistributedCookieLedger(req, now)
-  hydrateStoreFromCookieLedger(
-    store,
-    cookieLedger,
-    { ip, email, messageHash, cleanIdemKey },
-    now
-  )
-
-  // 1. Verificar idempotencia explícita o mensaje duplicado en ventana de 30 minutos
-  if (cleanIdemKey && store.idempotencyKeys[cleanIdemKey] > now) {
+  const backend = resolveCentralStoreBackend(req)
+  if (backend.type === 'UNAVAILABLE') {
     return {
       allowed: false,
-      statusCode: 429,
-      code: 'DUPLICATE_IDEMPOTENCY_KEY',
-      limitCategory: 'duplicate_30m',
+      statusCode: 503,
+      code: 'CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE',
+      limitCategory: 'fail_closed_store_unavailable',
+      failClosed: true,
+      technicalDetail: backend.reason,
       messageHash,
     }
   }
 
-  if (store.duplicates[messageHash] && store.duplicates[messageHash] > now) {
+  const effectiveIpMinIntervalMs =
+    process.env.NODE_ENV !== 'production' &&
+    req?.headers?.['x-qa-test-suite'] === 'gar-antispam-qa' &&
+    req?.headers?.['x-qa-bypass-ip-interval'] === 'true'
+      ? 0
+      : cfg.ipMinIntervalMs
+
+  try {
+    if (backend.type === 'REDIS_REST') {
+      const keys = [
+        `gar:${cleanIdemKey || 'idem:none'}`,
+        `gar:dup:${messageHash}`,
+        `gar:${ipIntKey}`,
+        `gar:${ip15mKey}`,
+        `gar:${ip24hKey}`,
+        `gar:${email24hKey}`,
+        `gar:${global24hKey}`,
+        `gar:${globalEmails24hKey}`,
+      ]
+      const args = [
+        cleanIdemKey ? '1' : '0',
+        String(cfg.duplicateWindowMs),
+        String(effectiveIpMinIntervalMs),
+        String(cfg.ip15mLimit),
+        String(cfg.ip15mWindowMs),
+        String(cfg.ip24hLimit),
+        String(cfg.ip24hWindowMs),
+        String(cfg.email24hLimit),
+        String(cfg.email24hWindowMs),
+        String(cfg.global24hLimit),
+        String(cfg.global24hWindowMs),
+        String(cfg.globalEmails24hLimit),
+        String(cfg.globalEmails24hWindowMs),
+      ]
+      const res = await executeUpstashPipeline(backend, [
+        ['EVAL', REDIS_EVALUATE_LUA, String(keys.length), ...keys, ...args],
+      ])
+      const outcome = res?.[0]?.result
+      if (!outcome || res?.[0]?.error) {
+        throw new Error(res?.[0]?.error || 'REDIS_EVAL_FAILED')
+      }
+      if (outcome !== 'OK') {
+        return mapRateLimitCodeToFailure(outcome, messageHash)
+      }
+      return {
+        allowed: true,
+        statusCode: 200,
+        code: 'OK',
+        messageHash,
+        cleanIdemKey,
+        reservationKeys: { ipIntKey, ip15mKey, ip24hKey, email24hKey, global24hKey, globalEmails24hKey },
+      }
+    }
+
+    if (backend.type === 'CLOUDFLARE_D1') {
+      await ensureD1Schema(backend)
+      const checkKeys = [
+        cleanIdemKey || 'idem:none',
+        `dup:${messageHash}`,
+        ipIntKey,
+        ip15mKey,
+        ip24hKey,
+        email24hKey,
+        global24hKey,
+        globalEmails24hKey,
+      ]
+      const rows = await executeCloudflareD1Query(
+        backend,
+        `SELECT k, cnt, exp FROM gar_rate_limits WHERE k IN (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) AND exp > ?9;`,
+        [...checkKeys, now]
+      )
+      const map = {}
+      for (const r of rows) {
+        map[r.k] = Number(r.cnt || 0)
+      }
+      if (cleanIdemKey && map[cleanIdemKey] > 0) {
+        return mapRateLimitCodeToFailure('DUPLICATE_IDEMPOTENCY_KEY', messageHash)
+      }
+      if (map[`dup:${messageHash}`] > 0) {
+        return mapRateLimitCodeToFailure('DUPLICATE_MESSAGE_30M', messageHash)
+      }
+      if (effectiveIpMinIntervalMs > 0 && map[ipIntKey] > 0) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_IP_MIN_INTERVAL_60S', messageHash)
+      }
+      if ((map[ip15mKey] || 0) >= cfg.ip15mLimit) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_IP_15M', messageHash)
+      }
+      if ((map[ip24hKey] || 0) >= cfg.ip24hLimit) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_IP_24H', messageHash)
+      }
+      if ((map[email24hKey] || 0) >= cfg.email24hLimit) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_EMAIL_24H', messageHash)
+      }
+      if (
+        (map[global24hKey] || 0) >= cfg.global24hLimit ||
+        (map[globalEmails24hKey] || 0) >= cfg.globalEmails24hLimit
+      ) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_GLOBAL_24H', messageHash)
+      }
+
+      const upserts = [
+        [`dup:${messageHash}`, now + cfg.duplicateWindowMs],
+        [ip15mKey, now + cfg.ip15mWindowMs],
+        [ip24hKey, now + cfg.ip24hWindowMs],
+        [email24hKey, now + cfg.email24hWindowMs],
+        [global24hKey, now + cfg.global24hWindowMs],
+        [globalEmails24hKey, now + cfg.globalEmails24hWindowMs],
+      ]
+      if (effectiveIpMinIntervalMs > 0) {
+        upserts.push([ipIntKey, now + effectiveIpMinIntervalMs])
+      }
+      if (cleanIdemKey) {
+        upserts.push([cleanIdemKey, now + cfg.duplicateWindowMs])
+      }
+      for (const [k, exp] of upserts) {
+        await executeCloudflareD1Query(
+          backend,
+          `INSERT INTO gar_rate_limits (k, cnt, exp) VALUES (?1, 1, ?2)
+           ON CONFLICT(k) DO UPDATE SET cnt = CASE WHEN gar_rate_limits.exp <= ?3 THEN 1 ELSE gar_rate_limits.cnt + 1 END,
+                                        exp = CASE WHEN gar_rate_limits.exp <= ?3 THEN ?2 ELSE gar_rate_limits.exp END;`,
+          [k, exp, now]
+        )
+      }
+      return {
+        allowed: true,
+        statusCode: 200,
+        code: 'OK',
+        messageHash,
+        cleanIdemKey,
+        reservationKeys: { ipIntKey, ip15mKey, ip24hKey, email24hKey, global24hKey, globalEmails24hKey },
+      }
+    }
+
+    // Backend QA_SHARED_LOCK_STORE (serializado atómicamente entre procesos/instancias de prueba)
+    return await withAtomicFileLock(backend.filePath, async () => {
+      const store = readStoreSync(backend.filePath, now)
+
+      const getBucketCount = (key) => {
+        const entry = store.buckets[key]
+        if (!entry || entry.expiresAt <= now) return 0
+        return entry.count
+      }
+
+      if (cleanIdemKey && store.idempotencyKeys[cleanIdemKey] > now) {
+        return mapRateLimitCodeToFailure('DUPLICATE_IDEMPOTENCY_KEY', messageHash)
+      }
+      if (store.duplicates[messageHash] && store.duplicates[messageHash] > now) {
+        return mapRateLimitCodeToFailure('DUPLICATE_MESSAGE_30M', messageHash)
+      }
+      if (effectiveIpMinIntervalMs > 0 && getBucketCount(ipIntKey) >= 1) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_IP_MIN_INTERVAL_60S', messageHash)
+      }
+      if (getBucketCount(ip15mKey) >= cfg.ip15mLimit) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_IP_15M', messageHash)
+      }
+      if (getBucketCount(ip24hKey) >= cfg.ip24hLimit) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_IP_24H', messageHash)
+      }
+      if (getBucketCount(email24hKey) >= cfg.email24hLimit) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_EMAIL_24H', messageHash)
+      }
+      if (
+        getBucketCount(global24hKey) >= cfg.global24hLimit ||
+        getBucketCount(globalEmails24hKey) >= cfg.globalEmails24hLimit
+      ) {
+        return mapRateLimitCodeToFailure('RATE_LIMIT_GLOBAL_24H', messageHash)
+      }
+
+      const incrementBucket = (key, windowMs, delta = 1) => {
+        const existing = store.buckets[key]
+        if (!existing || existing.expiresAt <= now) {
+          store.buckets[key] = { count: delta, expiresAt: now + windowMs }
+        } else {
+          existing.count += delta
+        }
+      }
+
+      if (effectiveIpMinIntervalMs > 0) {
+        store.buckets[ipIntKey] = { count: 1, expiresAt: now + effectiveIpMinIntervalMs }
+      }
+      incrementBucket(ip15mKey, cfg.ip15mWindowMs, 1)
+      incrementBucket(ip24hKey, cfg.ip24hWindowMs, 1)
+      incrementBucket(email24hKey, cfg.email24hWindowMs, 1)
+      incrementBucket(global24hKey, cfg.global24hWindowMs, 1)
+      incrementBucket(globalEmails24hKey, cfg.globalEmails24hWindowMs, 1)
+
+      store.duplicates[messageHash] = now + cfg.duplicateWindowMs
+      if (cleanIdemKey) {
+        store.idempotencyKeys[cleanIdemKey] = now + cfg.duplicateWindowMs
+      }
+
+      writeStoreSync(backend.filePath, store)
+      return {
+        allowed: true,
+        statusCode: 200,
+        code: 'OK',
+        messageHash,
+        cleanIdemKey,
+        reservationKeys: { ipIntKey, ip15mKey, ip24hKey, email24hKey, global24hKey, globalEmails24hKey },
+      }
+    })
+  } catch (err) {
+    // Fail-closed ante cualquier error de comunicación o bloqueo del almacén centralizado
     return {
       allowed: false,
-      statusCode: 429,
-      code: 'DUPLICATE_MESSAGE_30M',
-      limitCategory: 'duplicate_30m',
+      statusCode: 503,
+      code: 'CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE',
+      limitCategory: 'fail_closed_store_unavailable',
+      failClosed: true,
+      technicalDetail: err?.message || 'CENTRAL_STORE_EXCEPTION',
       messageHash,
     }
-  }
-
-  const getBucketCount = (key) => {
-    const entry = store.buckets[key]
-    if (!entry || entry.expiresAt <= now) return 0
-    return entry.count
-  }
-
-  // 2. Límite por IP corto plazo (3 / 15 min)
-  if (getBucketCount(ip15mKey) >= cfg.ip15mLimit) {
-    return {
-      allowed: false,
-      statusCode: 429,
-      code: 'RATE_LIMIT_IP_15M',
-      limitCategory: 'ip_15m',
-      messageHash,
-    }
-  }
-
-  // 3. Límite por IP diario (10 / 24 h)
-  if (getBucketCount(ip24hKey) >= cfg.ip24hLimit) {
-    return {
-      allowed: false,
-      statusCode: 429,
-      code: 'RATE_LIMIT_IP_24H',
-      limitCategory: 'ip_24h',
-      messageHash,
-    }
-  }
-
-  // 4. Límite por Email declarado (3 / 60 min)
-  if (getBucketCount(email60mKey) >= cfg.email60mLimit) {
-    return {
-      allowed: false,
-      statusCode: 429,
-      code: 'RATE_LIMIT_EMAIL_60M',
-      limitCategory: 'email_60m',
-      messageHash,
-    }
-  }
-
-  // 5. Límite Global de consultas (30 / 60 min) o cuota global del conjunto de correos (60 / 60 min)
-  if (
-    getBucketCount(global60mKey) >= cfg.global60mLimit ||
-    getBucketCount(globalEmails60mKey) >= cfg.globalEmails60mLimit
-  ) {
-    return {
-      allowed: false,
-      statusCode: 429,
-      code: 'RATE_LIMIT_GLOBAL_60M',
-      limitCategory: 'global_60m',
-      globalQuotaAlert: true,
-      messageHash,
-    }
-  }
-
-  const incrementBucket = (key, windowMs, delta = 1) => {
-    const existing = store.buckets[key]
-    if (!existing || existing.expiresAt <= now) {
-      store.buckets[key] = { count: delta, expiresAt: now + windowMs }
-    } else {
-      existing.count += delta
-    }
-  }
-
-  incrementBucket(ip15mKey, cfg.ip15mWindowMs, 1)
-  incrementBucket(ip24hKey, cfg.ip24hWindowMs, 1)
-  incrementBucket(email60mKey, cfg.email60mWindowMs, 1)
-  incrementBucket(global60mKey, cfg.global60mWindowMs, 1)
-  // Contabilizar el correo interno en la cuota global del conjunto de correos
-  incrementBucket(globalEmails60mKey, cfg.globalEmails60mWindowMs, 1)
-
-  store.duplicates[messageHash] = now + cfg.duplicateWindowMs
-  if (cleanIdemKey) {
-    store.idempotencyKeys[cleanIdemKey] = now + cfg.duplicateWindowMs
-  }
-
-  writePersistentStore(store)
-  writeDistributedCookieLedger(res, store, { ip, email, messageHash, cleanIdemKey }, now)
-
-  return {
-    allowed: true,
-    statusCode: 200,
-    code: 'OK',
-    messageHash,
-    cleanIdemKey,
   }
 }
 
 /**
- * Evalúa si corresponde enviar la confirmación automática al visitante para prevenir
- * abuso de respuestas automáticas a terceros (backscatter spam):
- * - Máximo 1 confirmación automática cada 60 minutos a la misma dirección.
- * - Máximo 2 confirmaciones automáticas cada 24 horas a la misma dirección.
- * - Verifica que el conjunto total de correos (`global_emails_60m:all`) no supere la cuota global.
+ * Evalúa y consume atómicamente la cuota de respuesta automática al visitante:
+ * - Máximo 1 confirmación automática por email cada 60 minutos.
+ * - Máximo 2 confirmaciones automáticas por email cada 24 horas.
+ * - Verifica que el conjunto total de correos salientes no supere 80 por día (`global24h:emails`).
  */
-export function evaluateAndConsumeAutoReplyQuota({
+export async function evaluateAndConsumeAutoReplyQuota({
   email,
-  ip = '',
-  messageHash = '',
-  cleanIdemKey = null,
   req = null,
-  res = null,
   now = Date.now(),
 }) {
   const cfg = getRateLimitConfig()
-  const store = readPersistentStore(now)
-  const cookieLedger = readDistributedCookieLedger(req, now)
-  hydrateStoreFromCookieLedger(
-    store,
-    cookieLedger,
-    { ip, email, messageHash, cleanIdemKey },
-    now
-  )
-
   const cooldownKey = hashKeyIdentifier('ar_cd', email)
   const dailyKey = hashKeyIdentifier('ar_24h', email)
-  const globalEmails60mKey = 'global_emails_60m:all'
+  const globalEmails24hKey = 'global24h:emails'
 
-  // 1. Verificar ventana corta de enfriamiento por destinatario (60 min)
-  if (store.autoReplyRecipients[cooldownKey] && store.autoReplyRecipients[cooldownKey] > now) {
-    return {
-      allowed: false,
-      reason: 'AUTOREPLY_RECIPIENT_COOLDOWN_60M',
+  const backend = resolveCentralStoreBackend(req)
+  if (backend.type === 'UNAVAILABLE') {
+    return { allowed: false, reason: 'CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE' }
+  }
+
+  try {
+    if (backend.type === 'REDIS_REST') {
+      const lua = `
+        if redis.call('EXISTS', KEYS[1]) == 1 then return 'AUTOREPLY_RECIPIENT_COOLDOWN_60M' end
+        if tonumber(redis.call('GET', KEYS[2]) or '0') >= tonumber(ARGV[2]) then return 'AUTOREPLY_RECIPIENT_DAILY_LIMIT' end
+        if tonumber(redis.call('GET', KEYS[3]) or '0') >= tonumber(ARGV[4]) then return 'AUTOREPLY_GLOBAL_EMAIL_QUOTA_EXCEEDED' end
+        redis.call('SET', KEYS[1], '1', 'PX', tonumber(ARGV[1]))
+        local d = redis.call('INCR', KEYS[2])
+        if d == 1 then redis.call('PEXPIRE', KEYS[2], tonumber(ARGV[3])) end
+        local g = redis.call('INCR', KEYS[3])
+        if g == 1 then redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[5])) end
+        return 'OK'
+      `
+      const res = await executeUpstashPipeline(backend, [
+        [
+          'EVAL',
+          lua,
+          '3',
+          `gar:${cooldownKey}`,
+          `gar:${dailyKey}`,
+          `gar:${globalEmails24hKey}`,
+          String(cfg.autoReplyCooldownMs),
+          String(cfg.autoReply24hLimit),
+          String(cfg.autoReply24hWindowMs),
+          String(cfg.globalEmails24hLimit),
+          String(cfg.globalEmails24hWindowMs),
+        ],
+      ])
+      const outcome = res?.[0]?.result
+      if (outcome !== 'OK') {
+        return { allowed: false, reason: outcome || 'CENTRAL_STORE_ERROR' }
+      }
+      return { allowed: true, reason: 'OK', cooldownKey }
     }
-  }
 
-  // 2. Verificar tope diario de respuestas automáticas por destinatario (2 / 24h)
-  const dailyBucket = store.buckets[dailyKey]
-  const dailyCount = dailyBucket && dailyBucket.expiresAt > now ? dailyBucket.count : 0
-  if (dailyCount >= cfg.autoReply24hLimit) {
-    return {
-      allowed: false,
-      reason: 'AUTOREPLY_RECIPIENT_DAILY_LIMIT',
+    if (backend.type === 'CLOUDFLARE_D1') {
+      await ensureD1Schema(backend)
+      const rows = await executeCloudflareD1Query(
+        backend,
+        `SELECT k, cnt FROM gar_rate_limits WHERE k IN (?1, ?2, ?3) AND exp > ?4;`,
+        [cooldownKey, dailyKey, globalEmails24hKey, now]
+      )
+      const map = {}
+      for (const r of rows) map[r.k] = Number(r.cnt || 0)
+
+      if (map[cooldownKey] > 0) {
+        return { allowed: false, reason: 'AUTOREPLY_RECIPIENT_COOLDOWN_60M' }
+      }
+      if ((map[dailyKey] || 0) >= cfg.autoReply24hLimit) {
+        return { allowed: false, reason: 'AUTOREPLY_RECIPIENT_DAILY_LIMIT' }
+      }
+      if ((map[globalEmails24hKey] || 0) >= cfg.globalEmails24hLimit) {
+        return { allowed: false, reason: 'AUTOREPLY_GLOBAL_EMAIL_QUOTA_EXCEEDED' }
+      }
+
+      for (const [k, exp] of [
+        [cooldownKey, now + cfg.autoReplyCooldownMs],
+        [dailyKey, now + cfg.autoReply24hWindowMs],
+        [globalEmails24hKey, now + cfg.globalEmails24hWindowMs],
+      ]) {
+        await executeCloudflareD1Query(
+          backend,
+          `INSERT INTO gar_rate_limits (k, cnt, exp) VALUES (?1, 1, ?2)
+           ON CONFLICT(k) DO UPDATE SET cnt = CASE WHEN gar_rate_limits.exp <= ?3 THEN 1 ELSE gar_rate_limits.cnt + 1 END,
+                                        exp = CASE WHEN gar_rate_limits.exp <= ?3 THEN ?2 ELSE gar_rate_limits.exp END;`,
+          [k, exp, now]
+        )
+      }
+      return { allowed: true, reason: 'OK', cooldownKey }
     }
-  }
 
-  // 3. Verificar cuota global del conjunto de correos (internos + respuestas automáticas)
-  const globalEmailBucket = store.buckets[globalEmails60mKey]
-  const globalEmailCount =
-    globalEmailBucket && globalEmailBucket.expiresAt > now ? globalEmailBucket.count : 0
-  if (globalEmailCount >= cfg.globalEmails60mLimit) {
-    return {
-      allowed: false,
-      reason: 'AUTOREPLY_GLOBAL_EMAIL_QUOTA_EXCEEDED',
-    }
-  }
+    return await withAtomicFileLock(backend.filePath, async () => {
+      const store = readStoreSync(backend.filePath, now)
 
-  // Reservar cuota de respuesta automática
-  store.autoReplyRecipients[cooldownKey] = now + cfg.autoReplyCooldownMs
-  if (!dailyBucket || dailyBucket.expiresAt <= now) {
-    store.buckets[dailyKey] = { count: 1, expiresAt: now + cfg.autoReply24hWindowMs }
-  } else {
-    store.buckets[dailyKey].count += 1
-  }
+      if (store.autoReplyRecipients[cooldownKey] && store.autoReplyRecipients[cooldownKey] > now) {
+        return { allowed: false, reason: 'AUTOREPLY_RECIPIENT_COOLDOWN_60M' }
+      }
+      const dailyBucket = store.buckets[dailyKey]
+      const dailyCount = dailyBucket && dailyBucket.expiresAt > now ? dailyBucket.count : 0
+      if (dailyCount >= cfg.autoReply24hLimit) {
+        return { allowed: false, reason: 'AUTOREPLY_RECIPIENT_DAILY_LIMIT' }
+      }
+      const globalEmailBucket = store.buckets[globalEmails24hKey]
+      const globalEmailCount =
+        globalEmailBucket && globalEmailBucket.expiresAt > now ? globalEmailBucket.count : 0
+      if (globalEmailCount >= cfg.globalEmails24hLimit) {
+        return { allowed: false, reason: 'AUTOREPLY_GLOBAL_EMAIL_QUOTA_EXCEEDED' }
+      }
 
-  if (!globalEmailBucket || globalEmailBucket.expiresAt <= now) {
-    store.buckets[globalEmails60mKey] = { count: 1, expiresAt: now + cfg.globalEmails60mWindowMs }
-  } else {
-    store.buckets[globalEmails60mKey].count += 1
-  }
+      store.autoReplyRecipients[cooldownKey] = now + cfg.autoReplyCooldownMs
+      if (!dailyBucket || dailyBucket.expiresAt <= now) {
+        store.buckets[dailyKey] = { count: 1, expiresAt: now + cfg.autoReply24hWindowMs }
+      } else {
+        store.buckets[dailyKey].count += 1
+      }
+      if (!globalEmailBucket || globalEmailBucket.expiresAt <= now) {
+        store.buckets[globalEmails24hKey] = { count: 1, expiresAt: now + cfg.globalEmails24hWindowMs }
+      } else {
+        store.buckets[globalEmails24hKey].count += 1
+      }
 
-  writePersistentStore(store)
-  writeDistributedCookieLedger(res, store, { ip, email, messageHash, cleanIdemKey }, now)
-  return {
-    allowed: true,
-    reason: 'OK',
-    cooldownKey,
+      writeStoreSync(backend.filePath, store)
+      return { allowed: true, reason: 'OK', cooldownKey }
+    })
+  } catch {
+    return { allowed: false, reason: 'CENTRAL_RATE_LIMIT_STORE_UNAVAILABLE' }
   }
 }
 
-export function releaseAutoReplyCooldownOnFailure({ cooldownKey }) {
+export async function releaseAutoReplyCooldownOnFailure({ cooldownKey, req = null }) {
   if (!cooldownKey) return
-  const store = readPersistentStore()
-  delete store.autoReplyRecipients[cooldownKey]
-  writePersistentStore(store)
+  const backend = resolveCentralStoreBackend(req)
+  try {
+    if (backend.type === 'REDIS_REST') {
+      await executeUpstashPipeline(backend, [['DEL', `gar:${cooldownKey}`]])
+    } else if (backend.type === 'CLOUDFLARE_D1') {
+      await executeCloudflareD1Query(backend, `DELETE FROM gar_rate_limits WHERE k = ?1;`, [cooldownKey])
+    } else if (backend.type === 'QA_SHARED_LOCK_STORE') {
+      await withAtomicFileLock(backend.filePath, async () => {
+        const store = readStoreSync(backend.filePath)
+        delete store.autoReplyRecipients[cooldownKey]
+        writeStoreSync(backend.filePath, store)
+      })
+    }
+  } catch {}
 }
 
-/**
- * Registra un ticket separado e idempotente cuando el correo interno a info@gastonramos.com.ar
- * fue aceptado pero falló el envío de la respuesta automática al visitante, permitiendo
- * gestionar un único reintento de la confirmación sin repetir la notificación interna.
- * No almacena el mensaje original del visitante.
- */
-export function registerFailedAutoReplyTicket({
+export async function registerFailedAutoReplyTicket({
   requestId,
   nombre,
   email,
   errorCode,
+  req = null,
   now = Date.now(),
 }) {
   if (!requestId || !email) return null
   const cfg = getRateLimitConfig()
-  const store = readPersistentStore(now)
-
   const ticket = {
     requestId,
     nombre: String(nombre || '').slice(0, 120),
@@ -709,46 +975,125 @@ export function registerFailedAutoReplyTicket({
     expiresAt: now + cfg.autoReplyTicketTtlMs,
   }
 
-  store.autoReplyTickets[requestId] = ticket
-  writePersistentStore(store)
+  const backend = resolveCentralStoreBackend(req)
+  try {
+    if (backend.type === 'REDIS_REST') {
+      await executeUpstashPipeline(backend, [
+        ['SET', `gar:ticket:${requestId}`, JSON.stringify(ticket), 'PX', String(cfg.autoReplyTicketTtlMs)],
+      ])
+    } else if (backend.type === 'CLOUDFLARE_D1') {
+      await ensureD1Schema(backend)
+      await executeCloudflareD1Query(
+        backend,
+        `INSERT OR REPLACE INTO gar_rate_limits (k, cnt, exp, meta) VALUES (?1, 1, ?2, ?3);`,
+        [`ticket:${requestId}`, ticket.expiresAt, JSON.stringify(ticket)]
+      )
+    } else if (backend.type === 'QA_SHARED_LOCK_STORE') {
+      await withAtomicFileLock(backend.filePath, async () => {
+        const store = readStoreSync(backend.filePath, now)
+        store.autoReplyTickets[requestId] = ticket
+        writeStoreSync(backend.filePath, store)
+      })
+    }
+  } catch {}
   return ticket
 }
 
-export function getAutoReplyTicket(requestId, now = Date.now()) {
+export async function getAutoReplyTicket(requestId, now = Date.now(), req = null) {
   if (!requestId) return null
-  const store = readPersistentStore(now)
-  return store.autoReplyTickets[requestId] || null
+  const backend = resolveCentralStoreBackend(req)
+  try {
+    if (backend.type === 'REDIS_REST') {
+      const res = await executeUpstashPipeline(backend, [['GET', `gar:ticket:${requestId}`]])
+      const raw = res?.[0]?.result
+      return raw ? JSON.parse(raw) : null
+    }
+    if (backend.type === 'CLOUDFLARE_D1') {
+      await ensureD1Schema(backend)
+      const rows = await executeCloudflareD1Query(
+        backend,
+        `SELECT meta FROM gar_rate_limits WHERE k = ?1 AND exp > ?2;`,
+        [`ticket:${requestId}`, now]
+      )
+      return rows?.[0]?.meta ? JSON.parse(rows[0].meta) : null
+    }
+    if (backend.type === 'QA_SHARED_LOCK_STORE') {
+      return await withAtomicFileLock(backend.filePath, async () => {
+        const store = readStoreSync(backend.filePath, now)
+        return store.autoReplyTickets[requestId] || null
+      })
+    }
+  } catch {}
+  return null
 }
 
-export function updateAutoReplyTicketStatus(requestId, { status, messageId = null, errorCode = null }, now = Date.now()) {
+export async function updateAutoReplyTicketStatus(
+  requestId,
+  { status, messageId = null, errorCode = null },
+  now = Date.now(),
+  req = null
+) {
   if (!requestId) return null
-  const store = readPersistentStore(now)
-  const ticket = store.autoReplyTickets[requestId]
-  if (!ticket) return null
+  const backend = resolveCentralStoreBackend(req)
+  try {
+    const ticket = await getAutoReplyTicket(requestId, now, req)
+    if (!ticket) return null
+    ticket.status = status
+    ticket.attempts = (ticket.attempts || 1) + 1
+    ticket.updatedAt = new Date(now).toISOString()
+    if (messageId) ticket.messageId = messageId
+    if (errorCode) ticket.lastErrorCode = errorCode
 
-  ticket.status = status
-  ticket.attempts = (ticket.attempts || 1) + 1
-  ticket.updatedAt = new Date(now).toISOString()
-  if (messageId) ticket.messageId = messageId
-  if (errorCode) ticket.lastErrorCode = errorCode
-
-  store.autoReplyTickets[requestId] = ticket
-  writePersistentStore(store)
-  return ticket
+    if (backend.type === 'REDIS_REST') {
+      const ttl = Math.max(1000, (ticket.expiresAt || now + 3600000) - now)
+      await executeUpstashPipeline(backend, [
+        ['SET', `gar:ticket:${requestId}`, JSON.stringify(ticket), 'PX', String(ttl)],
+      ])
+    } else if (backend.type === 'CLOUDFLARE_D1') {
+      await executeCloudflareD1Query(
+        backend,
+        `UPDATE gar_rate_limits SET meta = ?1 WHERE k = ?2;`,
+        [JSON.stringify(ticket), `ticket:${requestId}`]
+      )
+    } else if (backend.type === 'QA_SHARED_LOCK_STORE') {
+      await withAtomicFileLock(backend.filePath, async () => {
+        const store = readStoreSync(backend.filePath, now)
+        store.autoReplyTickets[requestId] = ticket
+        writeStoreSync(backend.filePath, store)
+      })
+    }
+    return ticket
+  } catch {
+    return null
+  }
 }
 
-/**
- * Si el correo interno falla por razones técnicas, libera el bloqueo de mensaje duplicado
- * para que el usuario legítimo pueda volver a intentar enviar su consulta.
- */
-export function releaseDuplicateLockOnFailure({ messageHash, cleanIdemKey }) {
-  if (!messageHash && !cleanIdemKey) return
-  const store = readPersistentStore()
-  if (messageHash) {
-    delete store.duplicates[messageHash]
-  }
-  if (cleanIdemKey) {
-    delete store.idempotencyKeys[cleanIdemKey]
-  }
-  writePersistentStore(store)
+export async function releaseDuplicateLockOnFailure({ messageHash, cleanIdemKey, reservationKeys, req = null }) {
+  const backend = resolveCentralStoreBackend(req)
+  try {
+    if (backend.type === 'REDIS_REST') {
+      const cmds = []
+      if (messageHash) cmds.push(['DEL', `gar:dup:${messageHash}`])
+      if (cleanIdemKey) cmds.push(['DEL', `gar:${cleanIdemKey}`])
+      if (reservationKeys?.ipIntKey) cmds.push(['DEL', `gar:${reservationKeys.ipIntKey}`])
+      if (cmds.length > 0) await executeUpstashPipeline(backend, cmds)
+    } else if (backend.type === 'CLOUDFLARE_D1') {
+      const keysToDelete = [
+        messageHash ? `dup:${messageHash}` : null,
+        cleanIdemKey || null,
+        reservationKeys?.ipIntKey || null,
+      ].filter(Boolean)
+      for (const k of keysToDelete) {
+        await executeCloudflareD1Query(backend, `DELETE FROM gar_rate_limits WHERE k = ?1;`, [k])
+      }
+    } else if (backend.type === 'QA_SHARED_LOCK_STORE') {
+      await withAtomicFileLock(backend.filePath, async () => {
+        const store = readStoreSync(backend.filePath)
+        if (messageHash) delete store.duplicates[messageHash]
+        if (cleanIdemKey) delete store.idempotencyKeys[cleanIdemKey]
+        if (reservationKeys?.ipIntKey) delete store.buckets[reservationKeys.ipIntKey]
+        writeStoreSync(backend.filePath, store)
+      })
+    }
+  } catch {}
 }
