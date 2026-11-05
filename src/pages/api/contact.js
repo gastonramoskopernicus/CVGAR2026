@@ -225,6 +225,8 @@ export default async function handler(req, res) {
     nombre: validation.data.nombre,
     mensaje: validation.data.mensaje,
     idempotencyKey,
+    req,
+    res,
   })
 
   if (!rateLimitResult.allowed) {
@@ -298,6 +300,11 @@ export default async function handler(req, res) {
   let autoReplyStatus = 'SKIPPED'
   const autoReplyQuota = evaluateAndConsumeAutoReplyQuota({
     email: validation.data.email,
+    ip,
+    messageHash: rateLimitResult.messageHash,
+    cleanIdemKey: rateLimitResult.cleanIdemKey,
+    req,
+    res,
   })
 
   if (!autoReplyQuota.allowed) {

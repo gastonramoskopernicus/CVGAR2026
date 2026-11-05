@@ -210,8 +210,16 @@ export function hashKeyIdentifier(prefix, rawValue) {
 }
 
 async function executeUpstashPipeline(commands) {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim()
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
+  const url = (
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.KV_REST_API_URL ||
+    ''
+  ).trim()
+  const token = (
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.KV_REST_API_TOKEN ||
+    ''
+  ).trim()
   if (!url || !token) return null
 
   try {
@@ -227,6 +235,181 @@ async function executeUpstashPipeline(commands) {
     return await res.json()
   } catch {
     return null
+  }
+}
+
+const RL_COOKIE_NAME = 'gar_rl_state'
+
+function resolveHmacSecret() {
+  return (
+    process.env.CONTACT_RL_SECRET?.trim() ||
+    process.env.NEXTAUTH_SECRET?.trim() ||
+    process.env.TURNSTILE_SECRET_KEY?.trim() ||
+    'gar-default-stateless-rl-hmac-key-2026'
+  )
+}
+
+function parseCookies(cookieHeader = '') {
+  const out = {}
+  if (typeof cookieHeader !== 'string' || !cookieHeader) return out
+  for (const part of cookieHeader.split(';')) {
+    const [k, ...rest] = part.trim().split('=')
+    if (k && rest.length > 0) {
+      out[k.trim()] = rest.join('=').trim()
+    }
+  }
+  return out
+}
+
+/**
+ * Lee y verifica criptográficamente (HMAC-SHA256) el estado distribuido stateless desde
+ * la cookie HttpOnly del cliente, garantizando continuidad entre instancias Serverless
+ * de Vercel (cold starts donde /tmp no se comparte) sin servicios pagos externos.
+ */
+export function readDistributedCookieLedger(req, now = Date.now()) {
+  try {
+    const cookies = parseCookies(req?.headers?.cookie || '')
+    const raw = cookies[RL_COOKIE_NAME]
+    if (!raw || !raw.includes('.')) return null
+
+    const [payloadB64, sig] = raw.split('.')
+    if (!payloadB64 || !sig) return null
+
+    const expectedSig = crypto
+      .createHmac('sha256', resolveHmacSecret())
+      .update(payloadB64)
+      .digest('base64url')
+
+    const sigBuf = Buffer.from(sig)
+    const expBuf = Buffer.from(expectedSig)
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null
+    }
+
+    const parsed = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'))
+    if (!parsed || typeof parsed !== 'object') return null
+
+    return {
+      ip15m: Array.isArray(parsed.ip15m) ? parsed.ip15m.filter((t) => t > now) : [],
+      ip24h: Array.isArray(parsed.ip24h) ? parsed.ip24h.filter((t) => t > now) : [],
+      em60m: parsed.em60m && typeof parsed.em60m === 'object' ? parsed.em60m : {},
+      dup: parsed.dup && typeof parsed.dup === 'object' ? parsed.dup : {},
+      idem: parsed.idem && typeof parsed.idem === 'object' ? parsed.idem : {},
+      arCd: parsed.arCd && typeof parsed.arCd === 'object' ? parsed.arCd : {},
+      ar24h: parsed.ar24h && typeof parsed.ar24h === 'object' ? parsed.ar24h : {},
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Firma (HMAC-SHA256) y emite la cookie HttpOnly con el estado actualizado de rate-limit
+ * para sincronizar el estado entre instancias Serverless de Vercel sin costo adicional.
+ */
+export function writeDistributedCookieLedger(res, store, { ip, email, messageHash, cleanIdemKey }, now = Date.now()) {
+  if (!res || typeof res.setHeader !== 'function') return
+  try {
+    const ip15mKey = hashKeyIdentifier('ip15m', ip)
+    const ip24hKey = hashKeyIdentifier('ip24h', ip)
+    const email60mKey = hashKeyIdentifier('email60m', email)
+    const cooldownKey = hashKeyIdentifier('ar_cd', email)
+    const dailyKey = hashKeyIdentifier('ar_24h', email)
+
+    const b15 = store.buckets[ip15mKey]
+    const b24 = store.buckets[ip24hKey]
+    const bEm = store.buckets[email60mKey]
+    const bAr24 = store.buckets[dailyKey]
+
+    const dupMap = {}
+    for (const [k, exp] of Object.entries(store.duplicates || {})) {
+      if (exp > now) dupMap[k.slice(0, 24)] = exp
+    }
+    if (messageHash && store.duplicates?.[messageHash]) {
+      dupMap[messageHash.slice(0, 24)] = store.duplicates[messageHash]
+    }
+
+    const idemMap = {}
+    if (cleanIdemKey && store.idempotencyKeys?.[cleanIdemKey]) {
+      idemMap[cleanIdemKey] = store.idempotencyKeys[cleanIdemKey]
+    }
+
+    const arCdMap = {}
+    if (store.autoReplyRecipients?.[cooldownKey] > now) {
+      arCdMap[cooldownKey] = store.autoReplyRecipients[cooldownKey]
+    }
+
+    const payload = {
+      ip15m: b15 && b15.expiresAt > now ? Array(Math.min(b15.count, 10)).fill(b15.expiresAt) : [],
+      ip24h: b24 && b24.expiresAt > now ? Array(Math.min(b24.count, 20)).fill(b24.expiresAt) : [],
+      em60m: bEm && bEm.expiresAt > now ? { [email60mKey]: { c: bEm.count, e: bEm.expiresAt } } : {},
+      dup: dupMap,
+      idem: idemMap,
+      arCd: arCdMap,
+      ar24h: bAr24 && bAr24.expiresAt > now ? { [dailyKey]: { c: bAr24.count, e: bAr24.expiresAt } } : {},
+    }
+
+    const payloadB64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')
+    const sig = crypto
+      .createHmac('sha256', resolveHmacSecret())
+      .update(payloadB64)
+      .digest('base64url')
+
+    const secureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+    const cookieStr = `${RL_COOKIE_NAME}=${payloadB64}.${sig}; Path=/api/contact; Max-Age=86400; HttpOnly; SameSite=Strict${secureFlag}`
+    res.setHeader('Set-Cookie', cookieStr)
+  } catch {
+    // No interrumpir flujo si los encabezados ya fueron enviados
+  }
+}
+
+function hydrateStoreFromCookieLedger(store, cookieLedger, { ip, email, messageHash, cleanIdemKey }, now = Date.now()) {
+  if (!cookieLedger) return
+  const ip15mKey = hashKeyIdentifier('ip15m', ip)
+  const ip24hKey = hashKeyIdentifier('ip24h', ip)
+  const email60mKey = hashKeyIdentifier('email60m', email)
+  const cooldownKey = hashKeyIdentifier('ar_cd', email)
+  const dailyKey = hashKeyIdentifier('ar_24h', email)
+
+  if (cookieLedger.ip15m.length > 0) {
+    const maxExp = Math.max(...cookieLedger.ip15m)
+    const cur = store.buckets[ip15mKey]
+    if (!cur || cur.expiresAt <= now || cur.count < cookieLedger.ip15m.length) {
+      store.buckets[ip15mKey] = { count: cookieLedger.ip15m.length, expiresAt: maxExp }
+    }
+  }
+  if (cookieLedger.ip24h.length > 0) {
+    const maxExp = Math.max(...cookieLedger.ip24h)
+    const cur = store.buckets[ip24hKey]
+    if (!cur || cur.expiresAt <= now || cur.count < cookieLedger.ip24h.length) {
+      store.buckets[ip24hKey] = { count: cookieLedger.ip24h.length, expiresAt: maxExp }
+    }
+  }
+  const emEntry = cookieLedger.em60m?.[email60mKey]
+  if (emEntry && emEntry.e > now) {
+    const cur = store.buckets[email60mKey]
+    if (!cur || cur.expiresAt <= now || cur.count < emEntry.c) {
+      store.buckets[email60mKey] = { count: emEntry.c, expiresAt: emEntry.e }
+    }
+  }
+  if (messageHash) {
+    const shortDup = messageHash.slice(0, 24)
+    if (cookieLedger.dup?.[shortDup] > now) {
+      store.duplicates[messageHash] = cookieLedger.dup[shortDup]
+    }
+  }
+  if (cleanIdemKey && cookieLedger.idem?.[cleanIdemKey] > now) {
+    store.idempotencyKeys[cleanIdemKey] = cookieLedger.idem[cleanIdemKey]
+  }
+  if (cookieLedger.arCd?.[cooldownKey] > now) {
+    store.autoReplyRecipients[cooldownKey] = cookieLedger.arCd[cooldownKey]
+  }
+  const ar24Entry = cookieLedger.ar24h?.[dailyKey]
+  if (ar24Entry && ar24Entry.e > now) {
+    const cur = store.buckets[dailyKey]
+    if (!cur || cur.expiresAt <= now || cur.count < ar24Entry.c) {
+      store.buckets[dailyKey] = { count: ar24Entry.c, expiresAt: ar24Entry.e }
+    }
   }
 }
 
@@ -273,6 +456,8 @@ export async function evaluateContactRateLimits({
   nombre,
   mensaje,
   idempotencyKey = '',
+  req = null,
+  res = null,
   now = Date.now(),
 }) {
   const cfg = getRateLimitConfig()
@@ -290,6 +475,13 @@ export async function evaluateContactRateLimits({
       : null
 
   const store = readPersistentStore(now)
+  const cookieLedger = readDistributedCookieLedger(req, now)
+  hydrateStoreFromCookieLedger(
+    store,
+    cookieLedger,
+    { ip, email, messageHash, cleanIdemKey },
+    now
+  )
 
   // 1. Verificar idempotencia explícita o mensaje duplicado en ventana de 30 minutos
   if (cleanIdemKey && store.idempotencyKeys[cleanIdemKey] > now) {
@@ -388,6 +580,7 @@ export async function evaluateContactRateLimits({
   }
 
   writePersistentStore(store)
+  writeDistributedCookieLedger(res, store, { ip, email, messageHash, cleanIdemKey }, now)
 
   return {
     allowed: true,
@@ -405,9 +598,24 @@ export async function evaluateContactRateLimits({
  * - Máximo 2 confirmaciones automáticas cada 24 horas a la misma dirección.
  * - Verifica que el conjunto total de correos (`global_emails_60m:all`) no supere la cuota global.
  */
-export function evaluateAndConsumeAutoReplyQuota({ email, now = Date.now() }) {
+export function evaluateAndConsumeAutoReplyQuota({
+  email,
+  ip = '',
+  messageHash = '',
+  cleanIdemKey = null,
+  req = null,
+  res = null,
+  now = Date.now(),
+}) {
   const cfg = getRateLimitConfig()
   const store = readPersistentStore(now)
+  const cookieLedger = readDistributedCookieLedger(req, now)
+  hydrateStoreFromCookieLedger(
+    store,
+    cookieLedger,
+    { ip, email, messageHash, cleanIdemKey },
+    now
+  )
 
   const cooldownKey = hashKeyIdentifier('ar_cd', email)
   const dailyKey = hashKeyIdentifier('ar_24h', email)
@@ -457,6 +665,7 @@ export function evaluateAndConsumeAutoReplyQuota({ email, now = Date.now() }) {
   }
 
   writePersistentStore(store)
+  writeDistributedCookieLedger(res, store, { ip, email, messageHash, cleanIdemKey }, now)
   return {
     allowed: true,
     reason: 'OK',

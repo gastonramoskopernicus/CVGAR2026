@@ -30,7 +30,25 @@ export const FIELD_LIMITS = {
 export const MAX_PAYLOAD_BYTES = 16 * 1024 // 16 KB máximo total por solicitud
 export const MAX_CONCURRENT_DISPATCHES = Number(process.env.CONTACT_MAX_CONCURRENCY || 3)
 
-export const INTERNAL_MAILBOX = 'info@gastonramos.com.ar'
+export const DEFAULT_INTERNAL_MAILBOX = 'info@gastonramos.com.ar'
+
+/**
+ * Extrae una dirección de correo limpia desde CLOUDFLARE_EMAIL_FROM (ej. "info@gastonramos.com.ar"
+ * o "GAR <info@gastonramos.com.ar>"), asegurando que pertenezca al dominio autorizado o
+ * utilizando por defecto info@gastonramos.com.ar.
+ */
+export function resolveInternalMailbox() {
+  const raw = process.env.CLOUDFLARE_EMAIL_FROM?.trim()
+  if (!raw || raw === '[SENSITIVE]') return DEFAULT_INTERNAL_MAILBOX
+  const match = raw.match(/<([^>]+)>/)
+  const candidate = (match ? match[1] : raw).trim().toLowerCase()
+  if (candidate === DEFAULT_INTERNAL_MAILBOX) {
+    return candidate
+  }
+  return DEFAULT_INTERNAL_MAILBOX
+}
+
+export const INTERNAL_MAILBOX = resolveInternalMailbox()
 export const INTERNAL_FROM_NAME = 'GAR | gastonramos.com.ar'
 export const AUTOREPLY_FROM_NAME = 'Gastón Alejandro Ramos'
 export const EMAIL_SUBJECT = 'GAR — Nueva consulta desde el sitio web'
