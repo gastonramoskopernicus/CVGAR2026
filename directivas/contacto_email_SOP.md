@@ -64,7 +64,10 @@ Diagnosticar, reparar y blindar el flujo de contacto de `gastonramos.com.ar` (`/
    - Verificación estricta de `success === true`, `action === 'contact_submit'`, `hostname` dentro de la lista blanca autorizada (`gastonramos.com.ar`, `localhost`, `127.0.0.1`, previews de Vercel del proyecto), y antigüedad del challenge.
    - **Prevención de Reutilización (Single-Use Token Ledger):** Todo token validado se registra mediante su hash SHA-256 en almacenamiento persistente con TTL de 15 minutos; cualquier intento de reutilizar un token es rechazado inmediatamente con `TOKEN_REUSED` antes de despachar correo.
 2. **Rate Limiting Distribuido y Multi-Nivel (`src/lib/contactRateLimiter.js`):**
-   - Arquitectura híbrida sin servicios pagos no autorizados: soporta **Upstash Redis REST** (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`) para despliegues serverless multi-instancia y un **almacén persistente compartido en disco con escritura atómica** (`.storage/security/contact-rate-limits.json`) para QA/desarrollo o nodos locales (no depende exclusivamente de la memoria volátil del proceso).
+   - Arquitectura híbrida de 3 capas sin servicios pagos adicionales:
+     1. **Capa 1 — Ledger Stateless Firmado Criptográficamente (`gar_rl_state` vía `HMAC-SHA256`):** Cookie `HttpOnly; SameSite=Strict; Secure` en `/api/contact` que sincroniza contadores de IP, email, hashes de mensajes duplicados (30m) y cooldowns de respuesta automática (60m/24h) entre distintas instancias Serverless de Vercel (incluso ante *cold starts* donde `/tmp` no se comparte) sin costo adicional.
+     2. **Capa 2 — Pipeline Distribuido Upstash Redis / Vercel KV REST:** Soporta `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (o `KV_REST_API_URL` + `KV_REST_API_TOKEN`) cuando estén configurados.
+     3. **Capa 3 — Almacén Atómico Compartido en Instancia (`/tmp/gar-contact-security`) + Challenge Edge de Cloudflare Turnstile:** Protege contra clientes que descarten cookies en instancias calientes y mediante validación criptográfica de un solo uso de Turnstile.
    - **Umbrales configurables por entorno:**
      - **Por IP (corto plazo):** `3` envíos cada `15` minutos (`CONTACT_RL_IP_15M=3`).
      - **Por IP (diario):** `10` envíos cada `24` horas (`CONTACT_RL_IP_24H=10`).
