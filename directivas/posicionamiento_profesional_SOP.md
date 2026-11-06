@@ -120,3 +120,59 @@ Ampliar la propuesta de valor hacia organizaciones de distintos sectores —espe
 ### 5.4. Ecosistema Profesional (`src/components/ProfessionalEcosystem.module.css`) — Eliminación de Recuadros
 - Eliminar fondos diferenciados, bordes, esquinas redondeadas de tarjeta y sombras en `.brandItem` (tanto en estado base como en `:hover` y `:focus-visible`).
 - Mostrar los 4 logotipos (`Kopernicus Tech`, `InspeXiona`, `Tech Insurance`, `KPS Tech`) directamente sobre el fondo de la sección, conservando enlaces, proporciones, alineación horizontal equilibrada y efecto hover discreto por opacidad/escala.
+
+---
+
+## 6. Ajustes Integrales V3.2 — Home, Posicionamiento, Aplicaciones, Showcase, Ecosistema y Footer
+
+### 6.1. HOME — Carrusel Editorial del Encabezado (4 Slides)
+En el bloque de contenido del Hero (`src/pages/index.js`, `src/styles/Home.module.css`), preservar la fotografía y composición visual actual e implementar el carrusel de **4 slides**:
+- **Slide 1 — Estrategia y transformación**
+  - Título: `Transformando la estrategia en realidad.`
+  - Descripción: `Acompaño a empresas y organizaciones en la definición y ejecución de iniciativas de transformación, conectando estrategia, procesos, tecnología y resultados.`
+- **Slide 2 — Tecnología y modernización**
+  - Título: `Tecnología que transforma negocios.`
+  - Descripción: `Modernización de plataformas, evolución de sistemas existentes, arquitectura empresarial e integración de soluciones para potenciar las capacidades del negocio.`
+- **Slide 3 — Innovación y nuevos modelos**
+  - Título: `Innovación con impacto real.`
+  - Descripción: `Diseño de nuevos productos, canales y modelos de negocio, incorporando automatización, inteligencia artificial y soluciones digitales.`
+- **Slide 4 — Experiencia sectorial**
+  - Título: `Experiencia que conecta industrias.`
+  - Descripción: `Más de 30 años acompañando organizaciones en desafíos de estrategia, operaciones y tecnología, con especialización en seguros y experiencia transversal en distintos sectores.`
+- **Comportamiento:** Transición automática suave cada 6 segundos, indicadores discretos de selección manual, pausa en hover/focus, respeto a `prefers-reduced-motion`, altura estable sin saltos ni desplazamiento de la fotografía, botones `Ver Perfil` y `Hablemos` permanentes.
+
+### 6.2. POSICIONAMIENTO — Ampliación Transversal más allá de Seguros
+- **Texto principal en Home (`#propuesta-valor`):**
+  `"Consultor senior en estrategia, tecnología y transformación empresarial. Con más de 30 años de experiencia, acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas, integrando innovación, arquitectura empresarial y soluciones digitales."`
+- **Industrias y ámbitos de experiencia (6 ámbitos equilibrados en `/capabilities`):**
+  1. `Seguros y servicios financieros.`
+  2. `Retail y comercio.`
+  3. `Servicios profesionales.`
+  4. `Industria y manufactura.`
+  5. `Tecnología y plataformas digitales.`
+  6. `Operaciones y servicios empresariales.`
+
+### 6.3. APLICACIONES (`/aplicaciones` — Pantalla de acceso privado)
+- **Etiqueta superior:** `ACCESO PRIVADO` (eliminar `"ACCESO RESTRINGIDO · OAUTH 2.0 / OIDC"`).
+- **Título:** `Mis Aplicaciones / Plataformas Propias`
+- **Descripción:** `"Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar."`
+- **Botones:** `"Iniciar sesión con Google"` y `"Volver al inicio"`. Conservar intacta la lógica de autenticación Google.
+
+### 6.4. SHOWCASE (`/showcase` — Rediseño de pantalla de acceso privado)
+- **Encabezado:** `Showcase`
+- **Título principal:** `Bienvenido a mi Showcase`
+- **Descripción:** `"En esta sección encontrarás presentaciones, demostraciones, prototipos y casos de éxito que reflejan experiencias, proyectos e iniciativas desarrolladas a lo largo de mi trayectoria profesional."`
+- **Composición visual conceptual (4 categorías con iconografía GAR y acentos dorados, sin exponer datos privados):**
+  1. `Presentaciones`
+  2. `Demos`
+  3. `Prototipos`
+  4. `Casos de éxito`
+- **Acceso:** Etiqueta discreta `CONTENIDO PRIVADO`, botón `"Iniciar sesión con Google"`, enlace `"Volver al inicio"`. Eliminar toda referencia visible a `OAuth`, `OIDC` o protocolos técnicos.
+
+### 6.5. HOME — Ecosistema Profesional (`src/components/ProfessionalEcosystem.js`)
+- Mostrar únicamente los 4 logotipos originales (`Kopernicus`, `InspeXiona`, `Tech Insurance`, `KPS Tech`) sobre el fondo de la sección, sin tarjetas, bordes, fondos ni sombras, verificando que cada logotipo dirija a su sitio institucional correspondiente.
+
+### 6.6. FOOTER — Consistencia Editorial (`src/components/Footer.js`)
+- **Descripción profesional:**
+  `"Consultor senior en estrategia, tecnología y transformación empresarial. Acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas digitales."`
+- **Claim institucional inferior:** `"Estrategia · Tecnología · Transformación"`.

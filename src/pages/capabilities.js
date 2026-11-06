@@ -92,43 +92,51 @@ export default function Capabilities() {
   const focusAreas = [
     {
       title: 'Seguros y servicios financieros',
-      badge: 'Especialización sectorial principal',
+      badge: 'Especialización consolidada',
       isPrimarySector: true,
       icon: <GARIcon name="consulting" size={28} />,
       description:
-        'Transformación de modelos operativos, modernización de plataformas, nuevos productos, distribución digital y eficiencia de procesos.',
+        'Transformación de modelos operativos, modernización de plataformas core, nuevos productos, distribución digital y eficiencia de procesos.',
     },
     {
-      title: 'Empresas medianas y en crecimiento',
-      badge: 'Capacidad transversal',
+      title: 'Retail y comercio',
+      badge: 'Experiencia transversal',
       isPrimarySector: false,
       icon: <GARIcon name="ventures" size={28} />,
       description:
-        'Profesionalización de procesos, digitalización de operaciones, integración de herramientas y acompañamiento tecnológico para escalar el negocio.',
+        'Evolución de canales comerciales, integración de plataformas e-commerce y omnicanalidad, optimización logística y experiencias digitales.',
     },
     {
-      title: 'Comercio, retail y servicios',
-      badge: 'Capacidad transversal',
+      title: 'Servicios profesionales',
+      badge: 'Experiencia transversal',
+      isPrimarySector: false,
+      icon: <GARIcon name="strategy" size={28} />,
+      description:
+        'Profesionalización de operaciones, digitalización de flujos de gestión, adopción de herramientas colaborativas y escalabilidad del servicio.',
+    },
+    {
+      title: 'Industria y manufactura',
+      badge: 'Experiencia transversal',
       isPrimarySector: false,
       icon: <GARIcon name="operations" size={28} />,
       description:
-        'Optimización de operaciones, integración de sistemas, evolución de canales comerciales y nuevas experiencias digitales.',
+        'Modernización de procesos productivos y administrativos, trazabilidad operativa, integración de sistemas ERP y mejora continua de eficiencia.',
     },
     {
-      title: 'Organizaciones con sistemas legados',
-      badge: 'Capacidad transversal',
+      title: 'Tecnología y plataformas digitales',
+      badge: 'Experiencia transversal',
       isPrimarySector: false,
-      icon: <GARIcon name="transformation" size={28} />,
+      icon: <GARIcon name="architecture" size={28} />,
       description:
-        'Modernización progresiva, integración y evolución tecnológica, preservando la continuidad operativa y las inversiones existentes.',
+        'Arquitectura empresarial, evolución de ecosistemas digitales, diseño de productos SaaS, integración mediante APIs y escalabilidad técnica.',
     },
     {
-      title: 'Empresas que buscan innovar',
-      badge: 'Capacidad transversal',
+      title: 'Operaciones y servicios empresariales',
+      badge: 'Experiencia transversal',
       isPrimarySector: false,
-      icon: <GARIcon name="innovation" size={28} />,
+      icon: <GARIcon name="automation" size={28} />,
       description:
-        'Identificación de oportunidades, validación de iniciativas, nuevos productos, servicios y modelos de negocio.',
+        'Simplificación de circuitos operativos, automatización de tareas, incorporación de inteligencia artificial e integración entre áreas.',
     },
   ]
 
@@ -188,12 +196,12 @@ export default function Capabilities() {
       <section className={styles.focusSection} aria-labelledby="focus-areas-heading">
         <div className="container">
           <div className={styles.focusHeader}>
-            <span className={styles.featuredLabel}>Ámbitos de Aplicación</span>
+            <span className={styles.featuredLabel}>Industrias y Ámbitos de Experiencia</span>
             <h2 id="focus-areas-heading" className={styles.focusSectionTitle}>
-              Áreas de Enfoque — Segmentos y desafíos empresariales
+              Áreas de Enfoque — Industrias y ámbitos de experiencia
             </h2>
             <p className={styles.focusSectionSubtitle}>
-              La industria aseguradora y los servicios financieros constituyen mi especialización sectorial histórica principal; a partir de esa experiencia, acompaño también a empresas medianas y organizaciones de distintos sectores en desafíos transversales de estrategia, eficiencia, modernización e innovación.
+              Más de 30 años acompañando a organizaciones de diversos sectores en la evolución de su estrategia, operaciones y tecnología, combinando una especialización consolidada en seguros y servicios financieros con experiencia transversal en múltiples industrias.
             </p>
           </div>
 

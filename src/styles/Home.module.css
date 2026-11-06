@@ -124,7 +124,7 @@
 }
 
 .descriptionSlot {
-  min-height: 5.5rem;
+  min-height: 5.75rem;
   display: flex;
   align-items: flex-start;
 }
@@ -624,7 +624,7 @@
   }
 
   .descriptionSlot {
-    min-height: 5.4rem;
+    min-height: 6.75rem;
   }
 
   .ctaGroup {

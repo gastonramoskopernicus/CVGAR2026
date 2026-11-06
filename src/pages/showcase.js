@@ -101,12 +101,15 @@ export default function ShowcasePage({
     return (
       <>
         <Head>
-          <title>Showcase Privado | GAR.</title>
+          <title>Showcase | GAR.</title>
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <PrivateAuthGate
-          sectionTitle="Showcase — Biblioteca Privada de Materiales"
-          sectionSubtitle="Repositorio privado de presentaciones, conferencias, documentos ejecutivos y recursos utilizados en actividades profesionales. Inicie sesión con la cuenta Google autorizada."
+          variant="showcase"
+          sectionKicker="Showcase"
+          badgeLabel="CONTENIDO PRIVADO"
+          sectionTitle="Bienvenido a mi Showcase"
+          sectionSubtitle="En esta sección encontrarás presentaciones, demostraciones, prototipos y casos de éxito que reflejan experiencias, proyectos e iniciativas desarrolladas a lo largo de mi trayectoria profesional."
           callbackUrl="/showcase"
           accessDenied={authenticated && !authorized}
           oauthConfigured={oauthConfigured}

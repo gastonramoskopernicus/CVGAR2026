@@ -33,24 +33,18 @@ def main() -> int:
     def record(name: str, passed: bool, detail: str = ""):
         checks.append({"name": name, "passed": bool(passed), "detail": detail})
 
-    # 1. Home checks
+    # 1. Home checks (4 slides + main positioning paragraph + capabilities)
     home_src = read_text("src/pages/index.js")
     required_home_strings = [
-        "ESTRATEGIA",
-        "TECNOLOGÍA",
-        "TRANSFORMACIÓN",
-        "Transformando la Estrategia en ",
-        "Acompaño a empresas en la evolución de sus negocios, conectando estrategia, procesos y tecnología para generar resultados concretos.",
-        "EFICIENCIA",
-        "PROCESOS",
-        "DIGITALIZACIÓN",
-        "Haciendo que la Tecnología genere ",
-        "Ayudo a organizaciones a simplificar operaciones, optimizar procesos e incorporar soluciones digitales que mejoran su competitividad.",
-        "INNOVACIÓN",
-        "CRECIMIENTO",
-        "NUEVOS NEGOCIOS",
-        "Creando Nuevas Oportunidades de ",
-        "Diseño estrategias para desarrollar productos, abrir canales comerciales y aprovechar la tecnología como motor de crecimiento.",
+        "Transformando la estrategia en ",
+        "Acompaño a empresas y organizaciones en la definición y ejecución de iniciativas de transformación, conectando estrategia, procesos, tecnología y resultados.",
+        "Tecnología que transforma ",
+        "Modernización de plataformas, evolución de sistemas existentes, arquitectura empresarial e integración de soluciones para potenciar las capacidades del negocio.",
+        "Innovación con impacto ",
+        "Diseño de nuevos productos, canales y modelos de negocio, incorporando automatización, inteligencia artificial y soluciones digitales.",
+        "Experiencia que conecta ",
+        "Más de 30 años acompañando organizaciones en desafíos de estrategia, operaciones y tecnología, con especialización en seguros y experiencia transversal en distintos sectores.",
+        "Consultor senior en estrategia, tecnología y transformación empresarial. Con más de 30 años de experiencia, acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas, integrando innovación, arquitectura empresarial y soluciones digitales.",
         "Estrategia y Negocio",
         "Transformación, crecimiento y competitividad.",
         "Procesos y Tecnología",
@@ -63,7 +57,7 @@ def main() -> int:
     ]
     missing_home = [s for s in required_home_strings if s not in home_src]
     record(
-        "Home: 3 mensajes del carrusel + 3 capacidades destacadas + 6000ms + reduced-motion",
+        "Home: 4 slides del carrusel + texto principal de posicionamiento + 3 capacidades + 6000ms + reduced-motion",
         len(missing_home) == 0,
         f"Faltantes: {missing_home}" if missing_home else "OK",
     )
@@ -90,7 +84,7 @@ def main() -> int:
         f"Faltantes: {missing_about}" if missing_about else "OK",
     )
 
-    # 3. Capacidades & Áreas de Enfoque checks
+    # 3. Capacidades & 6 Industrias / Ámbitos de Experiencia checks
     cap_src = read_text("src/pages/capabilities.js")
     required_cap_strings = [
         "Estrategia y Transformación del Negocio",
@@ -105,16 +99,16 @@ def main() -> int:
         "Identificación de casos de uso, evaluación de viabilidad, automatización inteligente y adopción de inteligencia artificial orientada a resultados.",
         "Especialización en Seguros y Finanzas",
         "Transformación aseguradora, evolución de sistemas core, distribución digital, nuevos productos, eficiencia operativa e integración de ecosistemas.",
-        "Empresas medianas y en crecimiento",
         "Seguros y servicios financieros",
-        "Comercio, retail y servicios",
-        "Organizaciones con sistemas legados",
-        "Empresas que buscan innovar",
-        "Especialización sectorial principal",
+        "Retail y comercio",
+        "Servicios profesionales",
+        "Industria y manufactura",
+        "Tecnología y plataformas digitales",
+        "Operaciones y servicios empresariales",
     ]
     missing_cap = [s for s in required_cap_strings if s not in cap_src]
     record(
-        "Capacidades: 6 capacidades principales + temas asociados + 5 Áreas de Enfoque",
+        "Capacidades: 6 capacidades principales + 6 Industrias y Ámbitos de Experiencia equilibrados",
         len(missing_cap) == 0,
         f"Faltantes: {missing_cap}" if missing_cap else "OK",
     )
@@ -146,14 +140,14 @@ def main() -> int:
     if ssr_index.exists():
         html = ssr_index.read_text(encoding="utf-8")
         ssr_ok = (
-            "Transformando la Estrategia en " in html
-            and "Acompaño a empresas en la evolución de sus negocios, conectando estrategia, procesos y tecnología para generar resultados concretos." in html
+            "Transformando la estrategia en " in html
+            and "Acompaño a empresas y organizaciones en la definición y ejecución de iniciativas de transformación, conectando estrategia, procesos, tecnología y resultados." in html
             and "Estrategia y Negocio" in html
             and "Procesos y Tecnología" in html
             and "Innovación y Crecimiento" in html
         )
         record(
-            "SSR HTML inicial (index.html): Mensaje 1 y 3 capacidades presentes para SEO y accesibilidad",
+            "SSR HTML inicial (index.html): Slide 1 y 3 capacidades presentes para SEO y accesibilidad",
             ssr_ok,
             "OK" if ssr_ok else "Falta contenido SSR en index.html",
         )
@@ -207,6 +201,54 @@ def main() -> int:
         "Contacto V3.1: Servicio de doble correo (interno + auto-reply) hacia/desde info@gastonramos.com.ar",
         dual_email_ok,
         "OK" if dual_email_ok else "Revisar contactEmailService.js",
+    )
+
+    # 8. Ajustes V3.2 (Aplicaciones, Showcase, Ecosistema enlaces, Footer)
+    app_src = read_text("src/pages/aplicaciones.js")
+    showcase_src = read_text("src/pages/showcase.js")
+    gate_src = read_text("src/components/PrivateAuthGate.js")
+    app_showcase_ok = (
+        "ACCESO PRIVADO" in app_src
+        and "Mis Aplicaciones / Plataformas Propias" in app_src
+        and "Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar." in app_src
+        and "CONTENIDO PRIVADO" in showcase_src
+        and "Bienvenido a mi Showcase" in showcase_src
+        and "En esta sección encontrarás presentaciones, demostraciones, prototipos y casos de éxito que reflejan experiencias, proyectos e iniciativas desarrolladas a lo largo de mi trayectoria profesional." in showcase_src
+        and "Presentaciones" in gate_src
+        and "Demos" in gate_src
+        and "Prototipos" in gate_src
+        and "Casos de éxito" in gate_src
+        and "OAuth" not in gate_src
+        and "OIDC" not in gate_src
+    )
+    record(
+        "Aplicaciones & Showcase V3.2: Textos de acceso privado, 4 categorías conceptuales y eliminación de referencias OAuth/OIDC",
+        app_showcase_ok,
+        "OK" if app_showcase_ok else "Revisar aplicaciones.js, showcase.js o PrivateAuthGate.js",
+    )
+
+    eco_js = read_text("src/components/ProfessionalEcosystem.js")
+    eco_links_ok = (
+        "https://kopernicus.tech/" in eco_js
+        and "https://inspexiona.com.ar/" in eco_js
+        and "https://techinsurance.com.ar/" in eco_js
+        and "https://www.kpstech.com.ar/" in eco_js
+    )
+    record(
+        "Ecosistema Profesional V3.2: 4 enlaces institucionales verificados",
+        eco_links_ok,
+        "OK" if eco_links_ok else "Revisar enlaces en ProfessionalEcosystem.js",
+    )
+
+    footer_src = read_text("src/components/Footer.js")
+    footer_ok = (
+        "Consultor senior en estrategia, tecnología y transformación empresarial. Acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas digitales." in footer_src
+        and "Estrategia · Tecnología · Transformación" in footer_src
+    )
+    record(
+        "Footer V3.2: Consistencia editorial y descripción profesional actualizada",
+        footer_ok,
+        "OK" if footer_ok else "Revisar Footer.js",
     )
 
     # Save report in .tmp/

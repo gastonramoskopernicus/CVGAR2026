@@ -13,31 +13,41 @@ const HERO_MESSAGES = [
     id: 'estrategia-transformacion',
     label: 'Estrategia y transformación',
     categories: ['ESTRATEGIA', 'TECNOLOGÍA', 'TRANSFORMACIÓN'],
-    titlePrefix: 'Transformando la Estrategia en ',
-    titleHighlight: 'Realidad',
+    titlePrefix: 'Transformando la estrategia en ',
+    titleHighlight: 'realidad',
     titleSuffix: '.',
     description:
-      'Acompaño a empresas en la evolución de sus negocios, conectando estrategia, procesos y tecnología para generar resultados concretos.',
+      'Acompaño a empresas y organizaciones en la definición y ejecución de iniciativas de transformación, conectando estrategia, procesos, tecnología y resultados.',
   },
   {
-    id: 'eficiencia-operativa',
-    label: 'Eficiencia operativa',
-    categories: ['EFICIENCIA', 'PROCESOS', 'DIGITALIZACIÓN'],
-    titlePrefix: 'Haciendo que la Tecnología genere ',
-    titleHighlight: 'Valor',
+    id: 'tecnologia-modernizacion',
+    label: 'Tecnología y modernización',
+    categories: ['TECNOLOGÍA', 'ARQUITECTURA', 'MODERNIZACIÓN'],
+    titlePrefix: 'Tecnología que transforma ',
+    titleHighlight: 'negocios',
     titleSuffix: '.',
     description:
-      'Ayudo a organizaciones a simplificar operaciones, optimizar procesos e incorporar soluciones digitales que mejoran su competitividad.',
+      'Modernización de plataformas, evolución de sistemas existentes, arquitectura empresarial e integración de soluciones para potenciar las capacidades del negocio.',
   },
   {
-    id: 'innovacion-crecimiento',
-    label: 'Innovación y crecimiento',
-    categories: ['INNOVACIÓN', 'CRECIMIENTO', 'NUEVOS NEGOCIOS'],
-    titlePrefix: 'Creando Nuevas Oportunidades de ',
-    titleHighlight: 'Negocio',
+    id: 'innovacion-nuevos-modelos',
+    label: 'Innovación y nuevos modelos',
+    categories: ['INNOVACIÓN', 'AUTOMATIZACIÓN', 'INTELIGENCIA ARTIFICIAL'],
+    titlePrefix: 'Innovación con impacto ',
+    titleHighlight: 'real',
     titleSuffix: '.',
     description:
-      'Diseño estrategias para desarrollar productos, abrir canales comerciales y aprovechar la tecnología como motor de crecimiento.',
+      'Diseño de nuevos productos, canales y modelos de negocio, incorporando automatización, inteligencia artificial y soluciones digitales.',
+  },
+  {
+    id: 'experiencia-sectorial',
+    label: 'Experiencia sectorial',
+    categories: ['TRAYECTORIA', 'OPERACIONES', 'MULTI-INDUSTRIA'],
+    titlePrefix: 'Experiencia que conecta ',
+    titleHighlight: 'industrias',
+    titleSuffix: '.',
+    description:
+      'Más de 30 años acompañando organizaciones en desafíos de estrategia, operaciones y tecnología, con especialización en seguros y experiencia transversal en distintos sectores.',
   },
 ]
 
@@ -254,7 +264,7 @@ export default function Home() {
                     </defs>
                     <text className={styles.badgeText}>
                       <textPath href="#circlePath" startOffset="0%">
-                        SEGUROS &bull; ESTRATEGIA &bull; TECNOLOGÍA &bull; TRANSFORMACIÓN &bull; INNOVACIÓN &bull;
+                        ESTRATEGIA &bull; TECNOLOGÍA &bull; TRANSFORMACIÓN &bull; PROCESOS &bull; INNOVACIÓN &bull;
                       </textPath>
                     </text>
                   </svg>
@@ -302,7 +312,7 @@ export default function Home() {
               </div>
               <div className={styles.infoContent}>
                 <p>
-                  Más de 30 años de trayectoria asesorando a organizaciones en estrategia, procesos y tecnología para evolucionar sus negocios, con una especialización consolidada en la industria aseguradora y los servicios financieros en Argentina y Latinoamérica.
+                  Consultor senior en estrategia, tecnología y transformación empresarial. Con más de 30 años de experiencia, acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas, integrando innovación, arquitectura empresarial y soluciones digitales.
                 </p>
               </div>
             </div>

@@ -26,10 +26,10 @@ const Footer = () => {
             </div>
             <p className={styles.brandName}>Gastón Alejandro Ramos</p>
             <p className={styles.brandTagline}>
-              Consultor Senior en Estrategia y Tecnología para Empresas
+              Consultor Senior en Estrategia, Tecnología y Transformación Empresarial
             </p>
             <p className={styles.brandDescription}>
-              Liderando la convergencia entre el negocio asegurador y las plataformas tecnológicas de vanguardia para el mercado latinoamericano.
+              Consultor senior en estrategia, tecnología y transformación empresarial. Acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas digitales.
             </p>
           </div>
 
@@ -134,7 +134,7 @@ const Footer = () => {
             &copy; {year} Gastón Alejandro Ramos. Todos los derechos reservados.
           </p>
           <p className={styles.copyMuted}>
-            Estrategia · Tecnología · Seguros
+            Estrategia · Tecnología · Transformación
           </p>
         </div>
       </div>
