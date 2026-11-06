@@ -20,8 +20,10 @@ export default function AplicacionesPage({
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <PrivateAuthGate
+          variant="default"
+          badgeLabel="ACCESO PRIVADO"
           sectionTitle="Mis Aplicaciones / Plataformas Propias"
-          sectionSubtitle="Este workspace privado contiene herramientas internas de gestión, logística y finanzas. Inicie sesión con la cuenta Google autorizada para continuar."
+          sectionSubtitle="Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar."
           callbackUrl="/aplicaciones"
           accessDenied={authenticated && !authorized}
           oauthConfigured={oauthConfigured}
@@ -33,7 +35,7 @@ export default function AplicacionesPage({
   return (
     <>
       <Head>
-        <title>Workspace Privado | GAR.</title>
+        <title>Mis Aplicaciones / Plataformas Propias | GAR.</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -42,7 +44,7 @@ export default function AplicacionesPage({
 
         <div className={styles.workspaceHeader}>
           <h1>Mis Aplicaciones / Plataformas Propias</h1>
-          <p>Accesos principales a herramientas de gestión, logística y finanzas.</p>
+          <p>Espacio privado y seguro de acceso a mis aplicaciones y plataformas.</p>
         </div>
 
         <div className={styles.appsGrid}>

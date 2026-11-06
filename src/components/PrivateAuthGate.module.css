@@ -21,6 +21,12 @@
   gap: 1.5rem;
 }
 
+.gateCardShowcase {
+  max-width: 780px;
+  padding: 3.5rem 3rem;
+  gap: 1.85rem;
+}
+
 .gateTop {
   display: flex;
   align-items: center;
@@ -29,6 +35,98 @@
   gap: 1rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.gateBrandGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.sectionKicker {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--accent-yellow, #f5b727);
+  padding-left: 0.9rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.gateHeaderBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Showcase Conceptual Presentation Grid (4 categories) */
+.showcaseConceptGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 0.35rem 0;
+}
+
+.conceptCard {
+  background: rgba(13, 14, 17, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid rgba(245, 183, 39, 0.55);
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: border-color 0.22s ease, background-color 0.22s ease;
+}
+
+.conceptCard:hover {
+  border-color: rgba(245, 183, 39, 0.42);
+  border-left-color: var(--accent-yellow, #f5b727);
+  background: rgba(20, 22, 27, 0.85);
+}
+
+.conceptCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+
+.conceptIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(245, 183, 39, 0.08);
+  border: 1px solid rgba(245, 183, 39, 0.22);
+  color: var(--accent-yellow, #f5b727);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conceptIndex {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted, rgba(245, 242, 235, 0.42));
+}
+
+.conceptTitle {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #f5f2eb);
+  margin: 0;
+}
+
+.conceptCaption {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #b4b9c4);
+  margin: 0;
 }
 
 .securityBadge {
@@ -236,8 +334,13 @@
 }
 
 @media (max-width: 640px) {
-  .gateCard {
+  .gateCard,
+  .gateCardShowcase {
     padding: 2.25rem 1.5rem;
+  }
+
+  .showcaseConceptGrid {
+    grid-template-columns: 1fr;
   }
 
   .sessionBar {

@@ -48,41 +48,93 @@ export function PrivateSessionBar({ user, activeSection = 'aplicaciones' }) {
   )
 }
 
+const SHOWCASE_CONCEPT_BLOCKS = [
+  {
+    id: 'presentaciones',
+    title: 'Presentaciones',
+    caption: 'Conferencias, posgrados y exposiciones ejecutivas.',
+    icon: 'strategy',
+  },
+  {
+    id: 'demos',
+    title: 'Demos',
+    caption: 'Demostraciones funcionales de plataformas y soluciones.',
+    icon: 'architecture',
+  },
+  {
+    id: 'prototipos',
+    title: 'Prototipos',
+    caption: 'Exploraciones de producto, IA y nuevos modelos digitales.',
+    icon: 'innovation',
+  },
+  {
+    id: 'casos-exito',
+    title: 'Casos de éxito',
+    caption: 'Iniciativas de transformación y resultados en organizaciones.',
+    icon: 'consulting',
+  },
+]
+
 export default function PrivateAuthGate({
-  sectionTitle = 'Espacio Privado',
-  sectionSubtitle = 'Este módulo requiere autenticación con la cuenta Google autorizada.',
+  variant = 'default',
+  sectionKicker = null,
+  badgeLabel = 'ACCESO PRIVADO',
+  sectionTitle = 'Mis Aplicaciones / Plataformas Propias',
+  sectionSubtitle = 'Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar.',
   callbackUrl = '/aplicaciones',
   accessDenied = false,
   oauthConfigured = true,
 }) {
+  const isShowcase = variant === 'showcase'
+
   return (
     <section className={styles.gateSection}>
       <div className="container">
-        <div className={styles.gateCard}>
+        <div className={`${styles.gateCard} ${isShowcase ? styles.gateCardShowcase : ''}`}>
           <div className={styles.gateTop}>
-            <Monogram variant="header" />
+            <div className={styles.gateBrandGroup}>
+              <Monogram variant="header" />
+              {sectionKicker && (
+                <span className={styles.sectionKicker}>{sectionKicker}</span>
+              )}
+            </div>
             <span className={styles.securityBadge}>
-              <GARIcon name="architecture" size={18} />
-              Acceso Restringido · OAuth 2.0 / OIDC
+              <GARIcon name="architecture" size={16} />
+              {badgeLabel}
             </span>
           </div>
 
-          <h1 className={styles.gateTitle}>
-            {accessDenied ? 'Acceso no autorizado' : sectionTitle}
-          </h1>
+          <div className={styles.gateHeaderBlock}>
+            <h1 className={styles.gateTitle}>
+              {accessDenied ? 'Acceso no autorizado' : sectionTitle}
+            </h1>
 
-          <p className={styles.gateDescription}>
-            {accessDenied
-              ? 'La cuenta utilizada no posee permisos para acceder a este entorno privado. Este espacio está restringido exclusivamente al titular autorizado.'
-              : sectionSubtitle}
-          </p>
+            <p className={styles.gateDescription}>
+              {accessDenied
+                ? 'La cuenta utilizada no posee permisos para acceder a este espacio privado. Iniciá sesión con una cuenta autorizada para continuar.'
+                : sectionSubtitle}
+            </p>
+          </div>
 
-          {!oauthConfigured && (
-            <div className={styles.configNotice}>
-              <strong>Entorno QA pendiente de credenciales OAuth:</strong> Configure{' '}
-              <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>,{' '}
-              <code>NEXTAUTH_SECRET</code> y <code>AUTHORIZED_EMAIL</code> en variables de entorno
-              del proyecto para habilitar el inicio de sesión con Google.
+          {isShowcase && !accessDenied && (
+            <div
+              className={styles.showcaseConceptGrid}
+              aria-label="Categorías conceptuales del Showcase"
+            >
+              {SHOWCASE_CONCEPT_BLOCKS.map((item, idx) => (
+                <div key={item.id} className={styles.conceptCard}>
+                  <div className={styles.conceptCardTop}>
+                    <div className={styles.conceptIcon} aria-hidden="true">
+                      <GARIcon name={item.icon} size={22} />
+                    </div>
+                    <span className={styles.conceptIndex}>
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <h2 className={styles.conceptTitle}>{item.title}</h2>
+                  <p className={styles.conceptCaption}>{item.caption}</p>
+                </div>
+              ))}
             </div>
           )}
 

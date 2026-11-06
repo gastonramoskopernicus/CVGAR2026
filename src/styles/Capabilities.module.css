@@ -157,11 +157,153 @@
   color: var(--text-secondary);
   line-height: 1.65;
   font-size: 0.98rem;
+  margin-bottom: 1.5rem;
+}
+
+.topicsBlock {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.topicsLabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-yellow);
+  margin-bottom: 0.85rem;
+}
+
+.topicsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topicsList li {
+  position: relative;
+  padding-left: 1.15rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.topicsList li::before {
+  content: '■';
+  position: absolute;
+  left: 0;
+  top: 0.34rem;
+  font-size: 0.48rem;
+  color: var(--accent-yellow);
+}
+
+/* Focus Areas Section (Segmentos y desafíos empresariales) */
+.focusSection {
+  padding: 5.5rem 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.focusHeader {
+  margin-bottom: 3.5rem;
+  max-width: 860px;
+}
+
+.focusSectionTitle {
+  font-size: clamp(1.95rem, 3.2vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.focusSectionSubtitle {
+  font-size: clamp(1.02rem, 1.4vw, 1.15rem);
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.focusGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.focusCard {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 2.35rem 2rem;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.focusCard:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38);
+}
+
+.focusCardPrimary {
+  border-color: rgba(245, 183, 39, 0.45);
+  background:
+    radial-gradient(circle at 90% 15%, rgba(245, 183, 39, 0.1) 0%, transparent 65%),
+    var(--bg-elevated);
+}
+
+.focusCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.65rem;
+}
+
+.focusCard:hover .cardIcon,
+.focusCard:focus-within .cardIcon {
+  background: var(--accent-yellow);
+  color: var(--text-on-light);
+  border-color: var(--accent-yellow);
+  --gar-icon-primary: #121316;
+  --gar-icon-secondary: #2a2d35;
+  --gar-icon-surface: #f5b727;
+}
+
+.focusBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-default);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+}
+
+.focusBadgePrimary {
+  color: var(--accent-yellow);
+  background: rgba(245, 183, 39, 0.1);
+  border-color: rgba(245, 183, 39, 0.38);
+}
+
+.focusCard .cardDescription {
+  margin-bottom: 0;
 }
 
 /* CTA Section */
 .ctaSection {
-  padding: 3rem 0 7rem;
+  padding: 4.5rem 0 7rem;
 }
 
 .ctaBox {
@@ -211,7 +353,8 @@
 }
 
 @media (max-width: 1080px) {
-  .grid {
+  .grid,
+  .focusGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -225,8 +368,13 @@
     margin-bottom: 3rem;
   }
 
-  .grid {
+  .grid,
+  .focusGrid {
     grid-template-columns: 1fr;
+  }
+
+  .focusSection {
+    padding: 4rem 0;
   }
 
   .featuredCapability {
@@ -234,7 +382,8 @@
     margin-bottom: 3rem;
   }
 
-  .card {
+  .card,
+  .focusCard {
     padding: 2rem 1.5rem;
   }
 

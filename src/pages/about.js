@@ -2,24 +2,53 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import SEOHead from '@/components/SEOHead'
 import { buildProfilePageSchema } from '@/lib/schemaOrg'
+import GARIcon from '@/components/GARIcon'
 import styles from '@/styles/About.module.css'
 import ExperienceMap from '../components/ExperienceMap'
 import EcosystemSection from '../components/EcosystemSection'
 
 export default function About() {
+  const credentials = [
+    'Licenciado en Sistemas de Información',
+    'Licenciado en Administración',
+    'Posgrado en Derecho de Seguros',
+    'Docente universitario, speaker y disertante',
+  ]
+
+  const dimensions = [
+    {
+      icon: 'strategy',
+      title: 'Visión estratégica',
+      description:
+        'Capacidad de comprender desafíos empresariales y definir caminos de transformación.',
+    },
+    {
+      icon: 'architecture',
+      title: 'Experiencia tecnológica',
+      description:
+        'Conocimiento de arquitecturas, plataformas, sistemas e integración.',
+    },
+    {
+      icon: 'operations',
+      title: 'Orientación al negocio',
+      description:
+        'Mejora de procesos, eficiencia, innovación y crecimiento.',
+    },
+  ]
+
   const specialties = [
-    "Estrategia Tecnológica en Seguros",
-    "Transformación Digital",
-    "Modernización de Core Systems",
-    "Innovación de Productos de Seguros",
-    "Automatización e IA",
-    "Canales Digitales & B2B2C",
-    "Eficiencia Operativa",
-    "Arquitectura Empresarial",
-    "Insurtech & Ecosistemas",
-    "Estrategia de Datos",
-    "C-Level & Board Advisor",
-    "Liderazgo de Equipos Estratégicos"
+    "Estrategia y Transformación de Negocios",
+    "Optimización y Digitalización de Procesos",
+    "Estrategia y Arquitectura Tecnológica",
+    "Modernización de Plataformas y Sistemas Core",
+    "Innovación, Productos y Canales Comerciales",
+    "Inteligencia Artificial y Automatización",
+    "Especialización en Seguros y Finanzas",
+    "Evaluación y Selección de Software",
+    "Integración de Sistemas y Ecosistemas",
+    "Eficiencia Operativa y Modelos de Negocio",
+    "Advisory para Directorios, CEOs y CIOs",
+    "Liderazgo de Programas de Transformación"
   ]
 
   const timeline = [
@@ -140,8 +169,8 @@ export default function About() {
   return (
     <>
       <SEOHead
-        title="Perfil y Trayectoria | Gastón Alejandro Ramos — Consultor Senior"
-        description="Conocé la trayectoria profesional, formación académica y experiencia internacional de Gastón Alejandro Ramos en estrategia, tecnología, transformación digital y seguros."
+        title="Perfil y Trayectoria | Gastón Alejandro Ramos — Consultor Senior en Estrategia y Tecnología"
+        description="Conocé la trayectoria profesional, formación académica y experiencia internacional de Gastón Alejandro Ramos, Consultor Senior en Estrategia, Tecnología y Transformación de Negocios con especialización en seguros y finanzas."
         path="/about"
         ogType="profile"
         jsonLd={buildProfilePageSchema()}
@@ -151,8 +180,19 @@ export default function About() {
         <div className="container">
           <div className={styles.header}>
             <h1 className={styles.title}>Sobre Mí</h1>
-            <p className={styles.subtitle}>Trayectoria de liderazgo enfocada en la transformación del sector asegurador.</p>
+            <p className={styles.subtitle}>
+              Consultor Senior en Estrategia, Tecnología y Transformación de Negocios, con más de 30 años de trayectoria acompañando la evolución de organizaciones y sistemas.
+            </p>
           </div>
+
+          <ul className={styles.credentialsStrip} aria-label="Credenciales profesionales">
+            {credentials.map((cred) => (
+              <li key={cred} className={styles.credentialItem}>
+                <span className={styles.credentialMarker} aria-hidden="true" />
+                <span className={styles.credentialText}>{cred}</span>
+              </li>
+            ))}
+          </ul>
 
           <div className={styles.bioGrid}>
             <div className={styles.bioImageWrapper}>
@@ -167,15 +207,30 @@ export default function About() {
             </div>
             <div className={styles.bioText}>
               <p>
-                Soy argentino, nací en la ciudad de Buenos Aires en 1977 y desde muy chico me interesó la tecnología y la informática. Soy un apasionado por la tecnología, el liderazgo y la innovación aplicada. Con más de 30 años de trayectoria en la industria aseguradora, mi enfoque se centra en actuar como un puente crítico entre la visión del negocio y las capacidades tecnológicas.
+                Soy consultor senior en Estrategia, Tecnología y Transformación Digital, con una trayectoria de más de 30 años acompañando a organizaciones en la evolución de sus negocios y sistemas.
               </p>
               <p>
-                Como Socio Director de Kopernicus Tech, me especializo en asesorar a niveles C-Level y Juntas Directivas en procesos de Transformación Digital, Insurtech y modernización de infraestructuras críticas. Mi objetivo es convertir la complejidad tecnológica en una ventaja competitiva sostenible.
+                Mi trabajo combina una visión estratégica del negocio con un profundo conocimiento de los procesos operativos y las soluciones tecnológicas. Acompaño a empresas que buscan mejorar su eficiencia, modernizar sus plataformas, desarrollar nuevos productos o canales comerciales y aprovechar las oportunidades que ofrece la innovación.
               </p>
               <p>
-                Mi formación incluye una Licenciatura en Sistemas de Información, una Licenciatura en Administración de Empresas en la Universidad del Salvador, un posgrado en Derecho y Seguros de la UBA y una certificación de la IAOP (International Association of Outsourcing Professionals), entre otras calificaciones y certificaciones.
+                Cuento con una especialización consolidada en la industria aseguradora y los servicios financieros, trabajando en iniciativas de transformación, evolución de sistemas core, integración tecnológica y nuevos modelos de negocio en Argentina y Latinoamérica.
+              </p>
+              <p>
+                Esta experiencia también me permite aportar valor a empresas medianas y organizaciones de otros sectores que necesitan incorporar tecnología con criterio de negocio, priorizar inversiones y convertir iniciativas de transformación en resultados concretos.
               </p>
             </div>
+          </div>
+
+          <div className={styles.dimensionsGrid}>
+            {dimensions.map((dim) => (
+              <div key={dim.title} className={styles.dimensionCard}>
+                <div className={styles.dimensionIcon} aria-hidden="true">
+                  <GARIcon name={dim.icon} size={28} />
+                </div>
+                <h2 className={styles.dimensionTitle}>{dim.title}</h2>
+                <p className={styles.dimensionDescription}>{dim.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -267,7 +322,7 @@ export default function About() {
           <div className={styles.workBox}>
             <h2 className={styles.workTitle}>Visión y Compromiso</h2>
             <p className={styles.workText}>
-              Mi enfoque se basa en la Integridad, la Visión Estratégica y la Ejecución Impecable. No solo diseño planes; me comprometo con la viabilidad tecnológica y el éxito a largo plazo de cada iniciativa de transformación en el sector asegurador.
+              Mi enfoque se basa en la integridad, la visión estratégica y la capacidad de ejecución. Entiendo a la tecnología como un habilitador de la estrategia y del negocio: no solo diseño hojas de ruta, sino que me comprometo con la viabilidad tecnológica, la mejora operativa y el éxito sostenible de cada iniciativa de transformación.
             </p>
           </div>
         </div>
