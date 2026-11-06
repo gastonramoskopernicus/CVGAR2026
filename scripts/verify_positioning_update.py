@@ -225,16 +225,33 @@ def main() -> int:
     )
 
     multimedia_src = read_text("src/pages/multimedia.js")
+    articles_css = read_text("src/styles/Articles.module.css")
     multimedia_imgs_ok = (
         "/thumbnails/tesla-seguros-software.jpg" in multimedia_src
         and "/thumbnails/seguro-parametrico-automatizacion-oraculos.jpg" in multimedia_src
         and "/thumbnails/y-si-el-riesgo-ya-no-fuera-incierto.jpg" in multimedia_src
         and "/thumbnails/entrevista-cambiar-industria.jpg" in multimedia_src
+        and ".cardImagePhoto" in articles_css
+        and ".cardImageReference" in articles_css
+        and ".cardImageLightIllustration" in articles_css
+        and ".cardImageContainer::after" in articles_css
     )
     record(
-        "Multimedia V3.3: Todas las tarjetas de artículos disponen de imagen local optimizada sin placeholders",
+        "Multimedia V3.4: Todas las tarjetas disponen de imagen local optimizada y tratamiento visual unificado grafito/dorado",
         multimedia_imgs_ok,
-        "OK" if multimedia_imgs_ok else "Revisar imágenes en src/pages/multimedia.js",
+        "OK" if multimedia_imgs_ok else "Revisar imágenes o estilos en Multimedia",
+    )
+
+    logos_ok = (
+        "/images/companies/infinity-life-v2.png" in about_src
+        and "/images/companies/nextstep-tecnologia-v2.png" in about_src
+        and (ROOT / "public/images/companies/infinity-life-v2.png").exists()
+        and (ROOT / "public/images/companies/nextstep-tecnologia-v2.png").exists()
+    )
+    record(
+        "Perfil V3.4: Logos originales de Next Step Tecnología e Infinity Life integrados localmente",
+        logos_ok,
+        "OK" if logos_ok else "Revisar logos en public/images/companies/ y about.js",
     )
 
     eco_js = read_text("src/components/ProfessionalEcosystem.js")

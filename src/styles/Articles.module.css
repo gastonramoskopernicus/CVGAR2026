@@ -101,13 +101,14 @@
   border: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
+  height: 100%;
   transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
 }
 
 .card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-5px);
   border-color: var(--border-accent);
-  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.48);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.52);
 }
 
 .cardImageContainer {
@@ -115,19 +116,64 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-subtle);
+  background: #0d0e11;
+  border-bottom: 1px solid rgba(245, 183, 39, 0.22);
+  transition: border-color 0.28s ease;
+}
+
+.card:hover .cardImageContainer {
+  border-bottom-color: rgba(245, 183, 39, 0.48);
+}
+
+/* Non-destructive editorial graphite/gold overlay for visual unification */
+.cardImageContainer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(245, 183, 39, 0.15) 0%, rgba(200, 138, 40, 0.05) 44%, transparent 70%),
+    linear-gradient(180deg, rgba(13, 14, 17, 0.26) 0%, rgba(13, 14, 17, 0.38) 52%, rgba(13, 14, 17, 0.82) 100%);
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.32s ease;
 }
 
 .cardImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  display: block;
+  transition: transform 0.5s ease, filter 0.35s ease;
 }
 
-.card:hover .cardImage {
+/* Photographic & video thumbnails: desaturated monochrome/graphite with controlled contrast */
+.cardImagePhoto {
+  filter: grayscale(88%) saturate(0.22) contrast(1.08) brightness(0.74);
+}
+
+.card:hover .cardImagePhoto {
   transform: scale(1.04);
+  filter: grayscale(70%) saturate(0.38) contrast(1.1) brightness(0.82);
+}
+
+/* Reference dark illustrations (Seguros Sintéticos, Cisnes Negros) */
+.cardImageReference {
+  filter: grayscale(18%) contrast(1.05) brightness(0.92);
+}
+
+.card:hover .cardImageReference {
+  transform: scale(1.04);
+  filter: grayscale(8%) contrast(1.08) brightness(0.98);
+}
+
+/* Light-background illustrations converted non-destructively to dark graphite/silver */
+.cardImageLightIllustration {
+  filter: invert(0.92) hue-rotate(180deg) grayscale(86%) contrast(1.18) brightness(0.88);
+}
+
+.card:hover .cardImageLightIllustration {
+  transform: scale(1.04);
+  filter: invert(0.92) hue-rotate(180deg) grayscale(75%) contrast(1.22) brightness(0.94);
 }
 
 .videoIframe {
@@ -210,23 +256,25 @@
   height: 100%;
   border: none;
   cursor: pointer;
-  background: rgba(13, 14, 17, 0.35);
+  background: rgba(13, 14, 17, 0.18);
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: 0.9;
+  opacity: 0.94;
+  z-index: 2;
   transition: opacity 0.25s ease, background 0.25s ease;
 }
 
 .card:hover .playOverlay {
   opacity: 1;
-  background: rgba(13, 14, 17, 0.2);
+  background: rgba(13, 14, 17, 0.08);
 }
 
 .playIconInner {
   width: 54px;
   height: 54px;
   background: var(--accent-yellow);
+  border: 2px solid rgba(255, 255, 255, 0.22);
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -234,17 +282,20 @@
   color: var(--text-on-light);
   font-size: 1.15rem;
   padding-left: 3px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  transition: transform 0.25s ease, background-color 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 183, 39, 0.28);
+  transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .card:hover .playIconInner {
   transform: scale(1.08);
   background: var(--accent-yellow-hover);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 26px rgba(245, 183, 39, 0.42);
 }
 
 .cardBody {
   padding: 2rem 2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
   flex: 1;
 }
 
@@ -273,11 +324,11 @@
 }
 
 .category {
-  background: rgba(18, 19, 22, 0.88);
+  background: rgba(13, 14, 17, 0.88);
   backdrop-filter: blur(8px);
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(245, 183, 39, 0.32);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -286,28 +337,28 @@
 }
 
 .typeTag {
-  background: rgba(18, 19, 22, 0.82);
+  background: rgba(13, 14, 17, 0.86);
   backdrop-filter: blur(8px);
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .typeDisertacion {
-  border-color: rgba(245, 183, 39, 0.45);
+  border-color: rgba(245, 183, 39, 0.42);
   color: var(--accent-yellow);
 }
 
 .typeEntrevista {
-  border-color: rgba(200, 138, 40, 0.55);
+  border-color: rgba(200, 138, 40, 0.48);
   color: #f5d07a;
 }
 
 .typeArticulo {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.22);
   color: var(--text-primary);
 }
 
@@ -315,6 +366,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: auto;
   padding: 1.25rem 2rem 1.75rem;
   border-top: 1px solid var(--border-subtle);
 }

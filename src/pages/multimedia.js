@@ -129,6 +129,7 @@ export default function Multimedia() {
       isVideo: true,
       youtubeId: 'EQJd2-HvjaQ',
       image: '/thumbnails/seguros-sinteticos.png',
+      imageTone: 'reference',
       link: 'https://www.youtube.com/watch?v=EQJd2-HvjaQ',
     },
     {
@@ -141,6 +142,7 @@ export default function Multimedia() {
       type: 'Publicación',
       isVideo: false,
       image: '/thumbnails/formacion-posgrado.png',
+      imageTone: 'lightIllustration',
       link: 'https://www.linkedin.com/in/ramosgaston/',
     },
     {
@@ -154,6 +156,7 @@ export default function Multimedia() {
       isVideo: true,
       youtubeId: '37LdiHUi6A8',
       image: '/thumbnails/core-change.png',
+      imageTone: 'lightIllustration',
       link: 'https://www.youtube.com/watch?v=37LdiHUi6A8',
     },
     {
@@ -167,6 +170,7 @@ export default function Multimedia() {
       isVideo: true,
       youtubeId: 'I8hAyTWKriA',
       image: '/thumbnails/cisnes-negros.png',
+      imageTone: 'reference',
       link: 'https://www.youtube.com/watch?v=I8hAyTWKriA',
     },
     {
@@ -179,6 +183,7 @@ export default function Multimedia() {
       type: 'Artículo',
       isVideo: false,
       image: '/thumbnails/modernizacion-core.png',
+      imageTone: 'photo',
       link: 'https://www.linkedin.com/feed/update/urn:li:activity:7469802818644918272/',
     },
     {
@@ -192,6 +197,7 @@ export default function Multimedia() {
       isVideo: true,
       youtubeId: 'kn1ttHHeZyU',
       image: '/thumbnails/seguros-digitales.png',
+      imageTone: 'lightIllustration',
       link: 'https://www.youtube.com/watch?v=kn1ttHHeZyU',
     },
   ]
@@ -263,7 +269,18 @@ export default function Multimedia() {
                     ) : (
                       <>
                         {item.image ? (
-                          <img src={item.image} alt={item.title} className={styles.cardImage} loading="lazy" />
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className={`${styles.cardImage} ${
+                              item.imageTone === 'lightIllustration'
+                                ? styles.cardImageLightIllustration
+                                : item.imageTone === 'reference'
+                                ? styles.cardImageReference
+                                : styles.cardImagePhoto
+                            }`}
+                            loading="lazy"
+                          />
                         ) : (
                           <div className={styles.editorialCover} aria-hidden="true">
                             <div className={styles.editorialPattern} />

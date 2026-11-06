@@ -91,7 +91,8 @@ export default function About() {
     {
       role: "Digital Leader / Infinity Ambassador",
       company: "InfinityLifeTech",
-      logo: null,
+      logo: "/images/companies/infinity-life-v2.png",
+      logoVariant: "square",
       period: "jul. 2020 - actualidad",
       description: "Colaboración estratégica para posicionar a InfinityLife Tech como una de las mejores plataformas de bienestar y estilo de vida.",
       highlights: [
@@ -103,7 +104,8 @@ export default function About() {
     {
       role: "Socio Gerente",
       company: "Next Step Argentina",
-      logo: "/images/companies/nextstep.svg",
+      logo: "/images/companies/nextstep-tecnologia-v2.png",
+      logoVariant: "square",
       period: "dic. 2012 - jul. 2020",
       description: "Me desarrollé como gerente en una de las principales consultoras de nicho de seguros en Argentina, colaborando en proyectos de gran relevancia tanto a nivel local como regional.",
       highlights: [
@@ -284,7 +286,9 @@ export default function About() {
                         <img
                           src={item.logo}
                           alt={item.company}
-                          className={styles.companyLogo}
+                          className={`${styles.companyLogo} ${
+                            item.logoVariant === 'square' ? styles.companyLogoSquare : ''
+                          }`}
                           loading="lazy"
                         />
                       )}

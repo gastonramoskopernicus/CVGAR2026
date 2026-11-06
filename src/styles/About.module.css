@@ -294,6 +294,15 @@
   flex-shrink: 0;
 }
 
+.companyLogoSquare {
+  height: 46px;
+  width: 46px;
+  max-width: 46px;
+  object-fit: contain;
+  border-radius: 6px;
+  opacity: 1;
+}
+
 .company {
   font-size: 1.05rem;
   color: var(--accent-yellow);

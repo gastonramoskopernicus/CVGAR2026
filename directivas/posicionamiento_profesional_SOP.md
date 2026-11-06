@@ -171,3 +171,20 @@ En el bloque de contenido del Hero (`src/pages/index.js`, `src/styles/Home.modul
 - **Descripción profesional:**
   `"Consultor senior en estrategia, tecnología y transformación empresarial. Acompaño a organizaciones en la evolución de sus negocios, procesos y plataformas digitales."`
 - **Claim institucional inferior:** `"Estrategia · Tecnología · Transformación"`.
+
+---
+
+## 7. Ajustes V3.4 — Corrección Definitiva de Logos en Perfil y Unificación Visual de Multimedia
+
+### 7.1. PERFIL (`/about`) — Logos Oficiales de Next Step Tecnología e Infinity Life
+- Copiar los dos archivos originales proporcionados por el usuario sin recortes ni alteración de colores:
+  - `public/images/companies/infinity-life-v2.png` (asociado a `InfinityLifeTech`)
+  - `public/images/companies/nextstep-tecnologia-v2.png` (asociado a `Next Step Argentina`)
+- Aplicar `object-fit: contain`, bordes redondeados sutiles (`border-radius: 6px`) y dimensiones equilibradas en `.companyLogo` para que ambos logotipos (con sus fondos turquesa y blanco originales) se integren armónicamente junto al nombre de cada empresa.
+
+### 7.2. MULTIMEDIA (`/multimedia`) — Unificación Visual Integral de Tarjetas
+- Tomar como referencia estética las tarjetas de `Seguros Digitales` (`seguros-digitales.png`) y `Cisnes Negros` (`cisnes-negros.png`): estética editorial, tecnológica, sobria y premium en negro, grafito y acentos ocre/dorado GAR.
+- Aplicar tratamiento visual no destructivo mediante filtros y overlays CSS en `.cardImage` y `.cardImageContainer`:
+  - Desaturación controlada (`grayscale(72%) saturate(0.45) contrast(1.08) brightness(0.82)`), eliminando fondos celestes o excesivamente coloridos.
+  - Overlay gradiente negro/grafito con sutil veladura cálida ocre/dorada (`rgba(200, 138, 40, 0.12)` a `rgba(13, 14, 17, 0.72)`) que unifica todas las imágenes y miniaturas de video sin perder legibilidad de rostros, marcas o textos.
+  - Proporción uniforme del área visual (`height: 220px`), alturas consistentes de título/descripción, pie de tarjeta alineado, enlace de acceso en dorado GAR y botón de reproducción dorado en tarjetas de video.
