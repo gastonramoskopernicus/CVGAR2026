@@ -90,10 +90,10 @@ Ampliar la propuesta de valor hacia organizaciones de distintos sectores —espe
 - **Ubicación:** Inmediatamente debajo del encabezado (`.header`) y antes del contenido biográfico (`.bioGrid`).
 - **Contenido exacto:**
   1. `Licenciado en Sistemas de Información`
-  2. `Licenciado en Administración`
+  2. `Licenciado en Administración de Empresas`
   3. `Posgrado en Derecho de Seguros`
-  4. `Docente universitario, speaker y disertante`
-- **Diseño:** Cinta/barra ejecutiva compacta en grafito, blanco y dorado GAR, utilizando recursos tipográficos/geométricos propios de la identidad GAR sin duplicar el aspecto de las tarjetas de Formación Académica ubicadas al pie de la página.
+  4. `Docente universitario · Speaker y disertante`
+- **Diseño:** Franja minimalista de 4 elementos alineados horizontalmente en desktop (2 columnas en tablet, 1 columna en móvil), sin tarjetas grandes ni fondos de caja que compitan con la fotografía (`background: transparent`), con iconografía fina de identidad GAR (`GARIcon`) y acentos dorados.
 
 ### 5.2. Contacto (`/contacto` y `POST /api/contact`) — Doble Envío y Diagnóstico Productivo
 - **Mensaje A (Notificación interna):**

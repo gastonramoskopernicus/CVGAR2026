@@ -155,9 +155,9 @@ def main() -> int:
     # 7. Ajustes V3.1 (Credenciales en Perfil, Carrusel Deportivo 60s/40s, Ecosistema sin recuadros, Doble correo)
     creds = [
         "Licenciado en Sistemas de Información",
-        "Licenciado en Administración",
+        "Licenciado en Administración de Empresas",
         "Posgrado en Derecho de Seguros",
-        "Docente universitario, speaker y disertante",
+        "Docente universitario · Speaker y disertante",
     ]
     missing_creds = [c for c in creds if c not in about_src]
     record(

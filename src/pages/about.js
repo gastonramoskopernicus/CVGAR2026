@@ -9,10 +9,22 @@ import EcosystemSection from '../components/EcosystemSection'
 
 export default function About() {
   const credentials = [
-    'Licenciado en Sistemas de Información',
-    'Licenciado en Administración',
-    'Posgrado en Derecho de Seguros',
-    'Docente universitario, speaker y disertante',
+    {
+      label: 'Licenciado en Sistemas de Información',
+      icon: 'architecture',
+    },
+    {
+      label: 'Licenciado en Administración de Empresas',
+      icon: 'strategy',
+    },
+    {
+      label: 'Posgrado en Derecho de Seguros',
+      icon: 'consulting',
+    },
+    {
+      label: 'Docente universitario · Speaker y disertante',
+      icon: 'innovation',
+    },
   ]
 
   const dimensions = [
@@ -185,11 +197,13 @@ export default function About() {
             </p>
           </div>
 
-          <ul className={styles.credentialsStrip} aria-label="Credenciales profesionales">
+          <ul className={styles.credentialsStrip} aria-label="Credenciales académicas y profesionales">
             {credentials.map((cred) => (
-              <li key={cred} className={styles.credentialItem}>
-                <span className={styles.credentialMarker} aria-hidden="true" />
-                <span className={styles.credentialText}>{cred}</span>
+              <li key={cred.label} className={styles.credentialItem}>
+                <span className={styles.credentialIcon} aria-hidden="true">
+                  <GARIcon name={cred.icon} size={20} />
+                </span>
+                <span className={styles.credentialText}>{cred.label}</span>
               </li>
             ))}
           </ul>
