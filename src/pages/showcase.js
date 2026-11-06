@@ -105,11 +105,10 @@ export default function ShowcasePage({
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <PrivateAuthGate
-          variant="showcase"
-          sectionKicker="Showcase"
+          variant="default"
           badgeLabel="CONTENIDO PRIVADO"
           sectionTitle="Bienvenido a mi Showcase"
-          sectionSubtitle="En esta sección encontrarás presentaciones, demostraciones, prototipos y casos de éxito que reflejan experiencias, proyectos e iniciativas desarrolladas a lo largo de mi trayectoria profesional."
+          sectionSubtitle="Un espacio donde comparto presentaciones, demostraciones, prototipos y casos de éxito vinculados con mi trayectoria profesional, proyectos de transformación e iniciativas de innovación y tecnología. Iniciá sesión con tu cuenta Google autorizada para acceder al contenido."
           callbackUrl="/showcase"
           accessDenied={authenticated && !authorized}
           oauthConfigured={oauthConfigured}

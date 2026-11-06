@@ -213,18 +213,28 @@ def main() -> int:
         and "Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar." in app_src
         and "CONTENIDO PRIVADO" in showcase_src
         and "Bienvenido a mi Showcase" in showcase_src
-        and "En esta sección encontrarás presentaciones, demostraciones, prototipos y casos de éxito que reflejan experiencias, proyectos e iniciativas desarrolladas a lo largo de mi trayectoria profesional." in showcase_src
-        and "Presentaciones" in gate_src
-        and "Demos" in gate_src
-        and "Prototipos" in gate_src
-        and "Casos de éxito" in gate_src
+        and "Un espacio donde comparto presentaciones, demostraciones, prototipos y casos de éxito vinculados con mi trayectoria profesional, proyectos de transformación e iniciativas de innovación y tecnología. Iniciá sesión con tu cuenta Google autorizada para acceder al contenido." in showcase_src
+        and "SHOWCASE_CONCEPT_BLOCKS" not in gate_src
         and "OAuth" not in gate_src
         and "OIDC" not in gate_src
     )
     record(
-        "Aplicaciones & Showcase V3.2: Textos de acceso privado, 4 categorías conceptuales y eliminación de referencias OAuth/OIDC",
+        "Aplicaciones & Showcase V3.3: Pantalla de acceso simplificada, sin grilla de 4 tarjetas y sin referencias OAuth/OIDC",
         app_showcase_ok,
         "OK" if app_showcase_ok else "Revisar aplicaciones.js, showcase.js o PrivateAuthGate.js",
+    )
+
+    multimedia_src = read_text("src/pages/multimedia.js")
+    multimedia_imgs_ok = (
+        "/thumbnails/tesla-seguros-software.jpg" in multimedia_src
+        and "/thumbnails/seguro-parametrico-automatizacion-oraculos.jpg" in multimedia_src
+        and "/thumbnails/y-si-el-riesgo-ya-no-fuera-incierto.jpg" in multimedia_src
+        and "/thumbnails/entrevista-cambiar-industria.jpg" in multimedia_src
+    )
+    record(
+        "Multimedia V3.3: Todas las tarjetas de artículos disponen de imagen local optimizada sin placeholders",
+        multimedia_imgs_ok,
+        "OK" if multimedia_imgs_ok else "Revisar imágenes en src/pages/multimedia.js",
     )
 
     eco_js = read_text("src/components/ProfessionalEcosystem.js")

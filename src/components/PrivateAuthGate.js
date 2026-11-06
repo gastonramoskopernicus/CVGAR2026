@@ -48,36 +48,7 @@ export function PrivateSessionBar({ user, activeSection = 'aplicaciones' }) {
   )
 }
 
-const SHOWCASE_CONCEPT_BLOCKS = [
-  {
-    id: 'presentaciones',
-    title: 'Presentaciones',
-    caption: 'Conferencias, posgrados y exposiciones ejecutivas.',
-    icon: 'strategy',
-  },
-  {
-    id: 'demos',
-    title: 'Demos',
-    caption: 'Demostraciones funcionales de plataformas y soluciones.',
-    icon: 'architecture',
-  },
-  {
-    id: 'prototipos',
-    title: 'Prototipos',
-    caption: 'Exploraciones de producto, IA y nuevos modelos digitales.',
-    icon: 'innovation',
-  },
-  {
-    id: 'casos-exito',
-    title: 'Casos de éxito',
-    caption: 'Iniciativas de transformación y resultados en organizaciones.',
-    icon: 'consulting',
-  },
-]
-
 export default function PrivateAuthGate({
-  variant = 'default',
-  sectionKicker = null,
   badgeLabel = 'ACCESO PRIVADO',
   sectionTitle = 'Mis Aplicaciones / Plataformas Propias',
   sectionSubtitle = 'Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar.',
@@ -85,18 +56,13 @@ export default function PrivateAuthGate({
   accessDenied = false,
   oauthConfigured = true,
 }) {
-  const isShowcase = variant === 'showcase'
-
   return (
     <section className={styles.gateSection}>
       <div className="container">
-        <div className={`${styles.gateCard} ${isShowcase ? styles.gateCardShowcase : ''}`}>
+        <div className={styles.gateCard}>
           <div className={styles.gateTop}>
             <div className={styles.gateBrandGroup}>
               <Monogram variant="header" />
-              {sectionKicker && (
-                <span className={styles.sectionKicker}>{sectionKicker}</span>
-              )}
             </div>
             <span className={styles.securityBadge}>
               <GARIcon name="architecture" size={16} />
@@ -115,28 +81,6 @@ export default function PrivateAuthGate({
                 : sectionSubtitle}
             </p>
           </div>
-
-          {isShowcase && !accessDenied && (
-            <div
-              className={styles.showcaseConceptGrid}
-              aria-label="Categorías conceptuales del Showcase"
-            >
-              {SHOWCASE_CONCEPT_BLOCKS.map((item, idx) => (
-                <div key={item.id} className={styles.conceptCard}>
-                  <div className={styles.conceptCardTop}>
-                    <div className={styles.conceptIcon} aria-hidden="true">
-                      <GARIcon name={item.icon} size={22} />
-                    </div>
-                    <span className={styles.conceptIndex}>
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <h2 className={styles.conceptTitle}>{item.title}</h2>
-                  <p className={styles.conceptCaption}>{item.caption}</p>
-                </div>
-              ))}
-            </div>
-          )}
 
           <div className={styles.gateActions}>
             {accessDenied ? (

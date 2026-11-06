@@ -158,16 +158,11 @@ En el bloque de contenido del Hero (`src/pages/index.js`, `src/styles/Home.modul
 - **Descripción:** `"Espacio privado y seguro de acceso a mis aplicaciones y plataformas. Iniciá sesión con tu cuenta Google autorizada para continuar."`
 - **Botones:** `"Iniciar sesión con Google"` y `"Volver al inicio"`. Conservar intacta la lógica de autenticación Google.
 
-### 6.4. SHOWCASE (`/showcase` — Rediseño de pantalla de acceso privado)
-- **Encabezado:** `Showcase`
-- **Título principal:** `Bienvenido a mi Showcase`
-- **Descripción:** `"En esta sección encontrarás presentaciones, demostraciones, prototipos y casos de éxito que reflejan experiencias, proyectos e iniciativas desarrolladas a lo largo de mi trayectoria profesional."`
-- **Composición visual conceptual (4 categorías con iconografía GAR y acentos dorados, sin exponer datos privados):**
-  1. `Presentaciones`
-  2. `Demos`
-  3. `Prototipos`
-  4. `Casos de éxito`
-- **Acceso:** Etiqueta discreta `CONTENIDO PRIVADO`, botón `"Iniciar sesión con Google"`, enlace `"Volver al inicio"`. Eliminar toda referencia visible a `OAuth`, `OIDC` o protocolos técnicos.
+### 6.4. SHOWCASE (`/showcase` — Simplificación de pantalla de acceso privado)
+- **Etiqueta:** `CONTENIDO PRIVADO`
+- **Título:** `Bienvenido a mi Showcase`
+- **Descripción:** `"Un espacio donde comparto presentaciones, demostraciones, prototipos y casos de éxito vinculados con mi trayectoria profesional, proyectos de transformación e iniciativas de innovación y tecnología. Iniciá sesión con tu cuenta Google autorizada para acceder al contenido."`
+- **Diseño:** Composición central, compacta y equilibrada idéntica a la pantalla de acceso de Aplicaciones. Eliminar completamente la grilla de las 4 tarjetas conceptuales (`Presentaciones`, `Demos`, `Prototipos`, `Casos de éxito`) y su numeración. Mantener botones `"Iniciar sesión con Google"` y `"Volver al inicio"`, sin referencias a `OAuth` u `OIDC`.
 
 ### 6.5. HOME — Ecosistema Profesional (`src/components/ProfessionalEcosystem.js`)
 - Mostrar únicamente los 4 logotipos originales (`Kopernicus`, `InspeXiona`, `Tech Insurance`, `KPS Tech`) sobre el fondo de la sección, sin tarjetas, bordes, fondos ni sombras, verificando que cada logotipo dirija a su sitio institucional correspondiente.
